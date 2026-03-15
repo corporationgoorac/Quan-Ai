@@ -38,7 +38,7 @@
             align-items: center;
             text-align: center;
             z-index: 2;
-            animation: slide-up 0.8s ease-out forwards;
+            /* Removed animation as requested for 0ms loading */
             width: 100%;
             max-width: 450px;
             padding: 40px 20px;
@@ -324,6 +324,10 @@
                 // 5. Update Local Storage Cache (so login.html skips setup next time)
                 localStorage.setItem('quan_has_profile', 'true');
                 localStorage.setItem('quan_user_name', finalName);
+                // Added new lines to store all profile details locally as requested
+                localStorage.setItem('quan_user_photo', photoUrl);
+                localStorage.setItem('quan_user_dob', dob);
+                localStorage.setItem('quan_user_memory', aboutText);
 
                 // 6. Success & Redirect to main application
                 saveBtn.innerText = 'Success! Redirecting...';
