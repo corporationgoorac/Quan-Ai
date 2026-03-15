@@ -27,6 +27,15 @@
             overflow-x: hidden;
             /* Forces dark mode native UI elements (like date pickers) */
             color-scheme: dark; 
+            /* Added to prevent copying text on the page as requested */
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Added to ensure input and textarea fields still allow copy/paste */
+        input, textarea, .premium-input {
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         /* ==========================================================================
@@ -68,6 +77,14 @@
         .profile-pic-wrapper {
             position: relative;
             margin-bottom: 10px;
+            /* Added stable container dimensions to prevent layout shifts */
+            width: 104px; /* 100px + 4px for borders */
+            height: 104px;
+            border-radius: 50%;
+            background-color: #1a1a24; /* Skeleton background while loading */
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .profile-pic {
@@ -79,6 +96,8 @@
             box-shadow: 0 0 30px rgba(138, 43, 226, 0.3); /* Subtle glow */
             background-color: #1a1a24; /* Fallback color before image loads */
             transition: transform 0.3s ease;
+            /* Set initial display to block so cached image shows instantly */
+            display: block;
         }
 
         .profile-pic:hover {
@@ -195,13 +214,25 @@
             .submit-btn { padding: 14px 20px; font-size: 1rem; }
         }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cachedPhoto = localStorage.getItem('quan_user_photo');
+            if (cachedPhoto) {
+                const picElement = document.getElementById('user-profile-pic');
+                if (picElement) {
+                    picElement.src = cachedPhoto;
+                    picElement.style.display = 'block';
+                }
+            }
+        });
+    </script>
 </head>
 <body>
 
     <div class="setup-container">
         
         <div class="profile-pic-wrapper">
-            <img id="user-profile-pic" class="profile-pic" src="" alt="Your Profile Picture" style="display: none;">
+            <img id="user-profile-pic" class="profile-pic" src="" alt="Your Profile Picture">
         </div>
         
         <h1>Complete Profile</h1>
@@ -264,10 +295,14 @@
                 if (user.photoURL) {
                     profilePic.src = user.photoURL;
                     profilePic.style.display = 'block';
+                    // Save to local storage immediately so it loads in 0ms on refresh
+                    localStorage.setItem('quan_user_photo', user.photoURL);
                 } else {
                     // Fallback to a UI placeholder if they don't have a Google photo
-                    profilePic.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || 'User') + '&background=8a2be2&color=fff';
+                    const fallbackUrl = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || 'User') + '&background=8a2be2&color=fff';
+                    profilePic.src = fallbackUrl;
                     profilePic.style.display = 'block';
+                    localStorage.setItem('quan_user_photo', fallbackUrl);
                 }
             } else {
                 // Security check: If they are not logged in, kick them back to login page
@@ -299,7 +334,7 @@
                 const finalName = nameInput.value.trim();
                 const dob = dobInput.value;
                 const aboutText = aboutInput.value.trim();
-                const photoUrl = currentUser.photoURL || '';
+                const photoUrl = currentUser.photoURL || localStorage.getItem('quan_user_photo') || '';
                 const email = currentUser.email || '';
 
                 // 3. Construct the User Profile Payload for Firestore
