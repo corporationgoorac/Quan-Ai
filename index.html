@@ -5,91 +5,105 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quan AI | Goorac Corporation</title>
     <style>
-        /* 1. Professional Dark Foundation */
-        body {
-            background-color: #080808; /* Our chosen Deep Charcoal */
+        /* 1. The "Inky" Background Logic */
+        body, html {
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            /* Radial gradient creates depth and a 'spotlight' behind the logo */
+            background: radial-gradient(circle at center, #0a0c14 0%, #04050a 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            overflow: hidden;
             color: #ffffff;
-            font-family: 'Inter', -apple-system, sans-serif;
         }
 
-        /* 2. Logo Animation */
-        .logo-container {
-            text-align: center;
-            animation: fadeIn 1.2s ease-in-out;
+        /* 2. Logo Wrapper with Soft Glow */
+        .logo-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Cubic-bezier makes the animation feel 'premium' and smooth */
+            animation: logo-reveal 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        .logo-container img {
-            width: 150px; /* Adjust size as needed */
+        .logo-wrapper img {
+            width: 160px; /* Flagship size */
             height: auto;
-            filter: drop-shadow(0 0 15px rgba(138, 43, 226, 0.3));
+            /* A soft purple/magenta glow to match the left side of your logo */
+            filter: drop-shadow(0 0 50px rgba(138, 43, 226, 0.3));
+            z-index: 2;
         }
 
-        /* 3. Subtle Loading Indicator */
-        .loader {
-            margin-top: 30px;
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #ff4500; /* Matching logo orange */
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        /* 4. Footer Branding */
-        footer {
+        /* 3. The Powered By Branding */
+        .brand-footer {
             position: absolute;
-            bottom: 30px;
-            font-size: 0.85rem;
-            letter-spacing: 2px;
-            color: #555555;
+            bottom: 50px;
+            text-align: center;
+            opacity: 0;
+            animation: footer-fade 1.5s ease 1s forwards;
+        }
+
+        .brand-text {
+            font-size: 11px;
             text-transform: uppercase;
+            letter-spacing: 6px; /* High spacing = Luxury/Pro aesthetic */
+            color: rgba(255, 255, 255, 0.25);
+            font-weight: 300;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+        /* 4. Elegant Animations */
+        @keyframes logo-reveal {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.8) translateY(30px); 
+                filter: blur(20px);
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1) translateY(0); 
+                filter: blur(0);
+            }
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes footer-fade {
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
 
-    <div class="logo-container">
-        <img src="images/icon.png" alt="Quan AI Logo">
+    <div class="logo-wrapper">
+        <img src="images/icon.png" alt="Quan AI">
     </div>
 
-    <div class="loader"></div>
-
-    <footer>Powered by Goorac</footer>
+    <div class="brand-footer">
+        <span class="brand-text">Powered by Goorac</span>
+    </div>
 
     <script type="module">
-        // Import only what is necessary from your clean config
+        // Import your config - NO hardcoded keys here!
         import { auth } from './config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
-        // We wait a tiny moment to ensure the splash feel is smooth
-        setTimeout(() => {
-            onAuthStateChanged(auth, (user) => {
+        // We use a listener to check if the user is already logged in
+        onAuthStateChanged(auth, (user) => {
+            // Give the user 2.5 seconds to see the beautiful splash
+            setTimeout(() => {
                 if (user) {
-                    // User is logged in, move to Home
+                    // Session found: Go to Home
                     window.location.replace("pages/home.html");
                 } else {
-                    // No session found, move to Login
+                    // No session: Go to Login
                     window.location.replace("pages/login.html");
                 }
-            });
-        }, 1500); // 1.5 seconds for branding impact
+            }, 2500);
+        });
     </script>
-
 </body>
 </html>
