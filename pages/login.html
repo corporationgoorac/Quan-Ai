@@ -6,7 +6,9 @@
     <title>Login | Quan AI</title>
     <link rel="manifest" href="../manifest.json">
     <style>
-        /* 1. The "Quantum Midnight" Foundation */
+        /* ==========================================================================
+           1. THE "QUANTUM MIDNIGHT" FOUNDATION
+           ========================================================================== */
         body, html {
             margin: 0;
             padding: 0;
@@ -20,9 +22,13 @@
             font-family: 'Inter', -apple-system, system-ui, sans-serif;
             color: #ffffff;
             overflow: hidden;
+            /* Added smooth background transition for PWA loading states */
+            transition: background 0.5s ease-in-out;
         }
 
-        /* 2. Login Container & Typography */
+        /* ==========================================================================
+           2. LOGIN CONTAINER & TYPOGRAPHY
+           ========================================================================== */
         .login-container {
             display: flex;
             flex-direction: column;
@@ -30,6 +36,10 @@
             text-align: center;
             z-index: 2;
             animation: fade-in 1s ease-out forwards;
+            /* Added max-width and padding for mobile responsiveness */
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .login-container h1 {
@@ -38,27 +48,37 @@
             letter-spacing: 1px;
             margin-top: 20px;
             margin-bottom: 8px;
+            /* Added text shadow for depth */
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
         .login-container p {
             font-size: 0.95rem;
             color: rgba(255, 255, 255, 0.5);
             margin-bottom: 40px;
+            line-height: 1.5;
         }
 
-        /* 3. The Glowing Logo */
+        /* ==========================================================================
+           3. THE GLOWING LOGO
+           ========================================================================== */
         .logo-wrapper img {
             width: 120px;
             height: auto;
             filter: drop-shadow(0 0 40px rgba(138, 43, 226, 0.4));
             margin-bottom: 10px;
+            /* Added a subtle floating animation to the logo */
+            animation: float 6s ease-in-out infinite;
         }
 
-        /* 4. Professional Google Button (Glassmorphism) */
+        /* ==========================================================================
+           4. PROFESSIONAL GOOGLE BUTTON (GLASSMORPHISM)
+           ========================================================================== */
         .google-btn {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari support */
             color: #ffffff;
             padding: 14px 28px;
             border-radius: 30px;
@@ -69,6 +89,10 @@
             align-items: center;
             gap: 12px;
             transition: all 0.3s ease;
+            /* Added outline none for custom focus states */
+            outline: none;
+            position: relative;
+            overflow: hidden;
         }
 
         .google-btn:hover {
@@ -78,12 +102,27 @@
             transform: translateY(-2px);
         }
 
+        /* Accessibility: Focus state for keyboard navigation */
+        .google-btn:focus-visible {
+            border-color: #ff4500;
+            box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.3);
+        }
+
+        /* Active state for when the button is actively being clicked */
+        .google-btn:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
         .google-icon {
             width: 20px;
             height: 20px;
+            z-index: 1;
         }
 
-        /* 5. Footer */
+        /* ==========================================================================
+           5. FOOTER (Hidden per requirements, but line retained)
+           ========================================================================== */
         .brand-footer {
             position: absolute;
             bottom: 40px;
@@ -94,9 +133,32 @@
             font-weight: 300;
         }
 
+        /* ==========================================================================
+           6. ANIMATIONS & MEDIA QUERIES
+           ========================================================================== */
         @keyframes fade-in {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 480px) {
+            .login-container h1 {
+                font-size: 1.5rem;
+            }
+            .google-btn {
+                padding: 12px 24px;
+                font-size: 0.95rem;
+            }
+            .logo-wrapper img {
+                width: 100px;
+            }
         }
     </style>
 </head>
@@ -110,8 +172,8 @@
         <h1>Welcome to Quan</h1>
         <p>Infinite Intelligence by Goorac Corporation</p>
 
-        <button class="google-btn" id="login-btn">
-            <svg class="google-icon" viewBox="0 0 24 24">
+        <button class="google-btn" id="login-btn" aria-label="Sign in with Google Account">
+            <svg class="google-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -122,7 +184,7 @@
         </button>
     </div>
 
-    <div class="brand-footer">Powered by Goorac</div>
+    <div class="brand-footer" style="display: none;">Powered by Goorac</div>
 
     <script type="module">
         // 1. We now import 'db' alongside auth
@@ -133,21 +195,54 @@
 
         const loginBtn = document.getElementById('login-btn');
 
-        // Button Click Handler
-        loginBtn.addEventListener('click', async () => {
-            try {
+        /**
+         * LOCAL STORAGE CACHE CHECK
+         * This executes immediately on page load before Firebase even initializes.
+         * If the user was logged in previously and their profile exists, we instantly
+         * route them to the home page to remove any waiting time.
+         */
+        function checkLocalCache() {
+            const cachedUid = localStorage.getItem('quan_user_uid');
+            const hasProfile = localStorage.getItem('quan_has_profile');
+            
+            if (cachedUid && hasProfile === 'true') {
+                console.log("[Quan AI] Local cache hit. Accelerating routing...");
+                // Visual feedback that cache is working
+                loginBtn.innerHTML = 'Restoring session...';
                 loginBtn.style.pointerEvents = 'none';
-                loginBtn.innerHTML = 'Authenticating...'; // Professional status text
-                await signInWithPopup(auth, googleProvider);
-            } catch (error) {
-                console.error("Login failed:", error);
-                loginBtn.style.pointerEvents = 'auto';
-                loginBtn.innerHTML = 'Sign in with Google';
-                alert("Login failed. Please try again.");
+                loginBtn.style.opacity = '0.7';
+                
+                // Fast redirect
+                window.location.replace("home.html");
+                return true; // Indicates cache was found
             }
-        });
+            return false; // No cache, proceed with normal Firebase auth
+        }
 
-        // 3. Database Routing Logic
+        // Run the cache check immediately
+        const isCached = checkLocalCache();
+
+        // If not cached, proceed with normal button event listeners
+        if (!isCached) {
+            // Button Click Handler
+            loginBtn.addEventListener('click', async () => {
+                try {
+                    loginBtn.style.pointerEvents = 'none';
+                    loginBtn.innerHTML = 'Authenticating...'; // Professional status text
+                    
+                    // Await the popup execution
+                    await signInWithPopup(auth, googleProvider);
+                    
+                } catch (error) {
+                    console.error("Login failed:", error);
+                    loginBtn.style.pointerEvents = 'auto';
+                    loginBtn.innerHTML = 'Sign in with Google';
+                    alert("Login failed. Please try again or check your connection.");
+                }
+            });
+        }
+
+        // 3. Database Routing Logic & Local Storage Saving
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
@@ -157,26 +252,42 @@
                         loginBtn.style.pointerEvents = 'none';
                     }
 
+                    // Save basic user info to local storage for the next visit
+                    localStorage.setItem('quan_user_uid', user.uid);
+                    localStorage.setItem('quan_user_email', user.email);
+
                     // Check if a document exists for this user ID in the 'users' collection
                     const userRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userRef);
 
                     if (userSnap.exists()) {
-                        // Profile exists! Send them to the main chat.
+                        // Profile exists! Save flag to local storage to speed up future logins
+                        localStorage.setItem('quan_has_profile', 'true');
+                        
+                        // Send them to the main chat.
                         window.location.replace("home.html");
                     } else {
-                        // Brand new user! Send them to the onboarding setup.
+                        // Brand new user! Ensure profile flag is false.
+                        localStorage.setItem('quan_has_profile', 'false');
+                        
+                        // Send them to the onboarding setup.
                         window.location.replace("setup.html");
                     }
                 } catch (error) {
                     console.error("Error reading database:", error);
-                    alert("Network error. Could not load profile.");
+                    alert("Network error. Could not load profile from Goorac servers.");
                     // Reset button if error occurs
                     if (loginBtn) {
                         loginBtn.innerHTML = 'Sign in with Google';
                         loginBtn.style.pointerEvents = 'auto';
                     }
                 }
+            } else {
+                // If user is explicitly signed out, clear the local storage cache
+                console.log("[Quan AI] No active session. Clearing local cache.");
+                localStorage.removeItem('quan_user_uid');
+                localStorage.removeItem('quan_has_profile');
+                localStorage.removeItem('quan_user_email');
             }
         });
     </script>
