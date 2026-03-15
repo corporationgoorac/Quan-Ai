@@ -1,0 +1,24 @@
+{
+  "name": "Quan AI",
+  "short_name": "Quan",
+  "description": "Infinite Intelligence by Goorac Corporation",
+  "start_url": "/pages/home.html",
+  "display": "standalone",
+  "background_color": "#04050a",
+  "theme_color": "#0a0c14",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
