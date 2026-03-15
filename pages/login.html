@@ -48,7 +48,7 @@
 
         /* 3. The Glowing Logo */
         .logo-wrapper img {
-            width: 120px; /* Slightly smaller than splash screen */
+            width: 120px;
             height: auto;
             filter: drop-shadow(0 0 40px rgba(138, 43, 226, 0.4));
             margin-bottom: 10px;
@@ -73,7 +73,7 @@
 
         .google-btn:hover {
             background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(138, 43, 226, 0.5); /* Brand purple edge */
+            border-color: rgba(138, 43, 226, 0.5);
             box-shadow: 0 0 20px rgba(138, 43, 226, 0.2);
             transform: translateY(-2px);
         }
@@ -125,23 +125,20 @@
     <div class="brand-footer">Powered by Goorac</div>
 
     <script type="module">
-        // Note the ../ to find config.js in the root folder
-        import { auth, googleProvider } from '../config.js';
+        // 1. We now import 'db' alongside auth
+        import { auth, db, googleProvider } from '../config.js';
         import { signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        // 2. Import Firestore methods to read the database
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const loginBtn = document.getElementById('login-btn');
 
-        // 1. Handle the button click
+        // Button Click Handler
         loginBtn.addEventListener('click', async () => {
             try {
-                // Disable button to prevent double-clicks
                 loginBtn.style.pointerEvents = 'none';
-                loginBtn.innerHTML = 'Signing in...';
-                
-                // Trigger the Google Login Popup
+                loginBtn.innerHTML = 'Authenticating...'; // Professional status text
                 await signInWithPopup(auth, googleProvider);
-                
-                // Note: We don't need a redirect here because the listener below will catch the success!
             } catch (error) {
                 console.error("Login failed:", error);
                 loginBtn.style.pointerEvents = 'auto';
@@ -150,11 +147,36 @@
             }
         });
 
-        // 2. The Global Listener (Auto-Redirect)
-        onAuthStateChanged(auth, (user) => {
+        // 3. Database Routing Logic
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // The exact millisecond they log in successfully, send them to the chat dashboard
-                window.location.replace("home.html");
+                try {
+                    // Update button text so user knows we are checking their profile
+                    if (loginBtn) {
+                        loginBtn.innerHTML = 'Loading Profile...';
+                        loginBtn.style.pointerEvents = 'none';
+                    }
+
+                    // Check if a document exists for this user ID in the 'users' collection
+                    const userRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (userSnap.exists()) {
+                        // Profile exists! Send them to the main chat.
+                        window.location.replace("home.html");
+                    } else {
+                        // Brand new user! Send them to the onboarding setup.
+                        window.location.replace("setup.html");
+                    }
+                } catch (error) {
+                    console.error("Error reading database:", error);
+                    alert("Network error. Could not load profile.");
+                    // Reset button if error occurs
+                    if (loginBtn) {
+                        loginBtn.innerHTML = 'Sign in with Google';
+                        loginBtn.style.pointerEvents = 'auto';
+                    }
+                }
             }
         });
     </script>
