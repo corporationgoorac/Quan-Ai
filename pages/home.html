@@ -579,28 +579,31 @@
         }
 
         .input-area {
-            margin: 10px 16px; 
-            padding: 8px 12px; 
+            margin: 16px 36px; /* Small, compact width */
+            padding: 6px 12px; 
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(26, 28, 36, 0.95); 
-            border-radius: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.08); 
+            background: rgba(26, 28, 36, 0.85); 
+            border-radius: 40px; /* Perfect pill shape */
+            border: 1px solid rgba(255, 255, 255, 0.05); 
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25); 
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            transform: translateY(0);
+            transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); /* Premium fluid spring */
             touch-action: none !important;
             position: relative;
         }
 
         .input-area:focus-within, .input-area.focused {
-            margin: 10px 16px; 
-            border-radius: 28px; 
+            margin: 8px 12px; /* Expands to full width */
+            padding: 10px 14px; /* More internal breathing room */
+            border-radius: 24px; /* Smooth rounded rectangle */
             background: rgba(30, 32, 42, 0.98); 
             border-color: rgba(138, 43, 226, 0.6); 
-            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.4); 
+            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.3), 0 12px 40px rgba(0,0,0,0.5); 
+            transform: translateY(-2px); /* Slight premium lift */
         }
 
         .input-box {
@@ -2268,40 +2271,4 @@
         const installBtn = document.getElementById('install-btn');
         const closeInstallBtn = document.getElementById('close-install-btn');
 
-        const isInstallDismissed = localStorage.getItem('quan_install_dismissed');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            if (!isInstallDismissed) {
-                setTimeout(() => {
-                    installBanner.style.display = 'flex';
-                    void installBanner.offsetWidth; 
-                    installBanner.classList.add('visible');
-                }, 1000); 
-            }
-        });
-
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`[Quan AI] Install prompt: ${outcome}`);
-            deferredPrompt = null;
-            installBanner.classList.remove('visible');
-            setTimeout(() => installBanner.style.display = 'none', 400);
-        });
-
-        closeInstallBtn.addEventListener('click', () => {
-            installBanner.classList.remove('visible');
-            setTimeout(() => installBanner.style.display = 'none', 400);
-            localStorage.setItem('quan_install_dismissed', 'true');
-        });
-
-        window.addEventListener('appinstalled', () => {
-            installBanner.style.display = 'none';
-            deferredPrompt = null;
-        });
-    </script>
-</body>
-</html>
+        const isInstallDismissed = localStorage.getItem('quan_
