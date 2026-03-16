@@ -564,7 +564,7 @@
         }
 
         /* ==========================================================================
-           6. FLAGSHIP CAPSULE INPUT AREA 
+           6. FLAGSHIP CAPSULE INPUT AREA (REDESIGNED PILL)
            ========================================================================== */
         .input-area-container {
             background: transparent;
@@ -579,36 +579,34 @@
         }
 
         .input-area {
-            margin: 16px 20px; /* Adjusted for better pill width */
+            margin: 16px 40px; /* Small, compact pill shape width */
             padding: 6px 14px; 
             display: flex;
             align-items: flex-end;
             gap: 8px;
             background: rgba(26, 28, 36, 0.85); 
-            border-radius: 50px; /* Perfect solid pill shape */
-            border: 1px solid transparent; /* Removed borders for cleaner look */
+            border-radius: 40px; /* Perfect uniform pill */
+            border: 1px solid rgba(255, 255, 255, 0.05); 
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
             transform: translateY(0);
-            transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); 
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); /* Premium fluid spring */
             touch-action: none !important;
             position: relative;
         }
 
         .input-area:focus-within, .input-area.focused {
-            margin: 16px 20px; /* Keeps the pill shape consistently sized, doesn't expand to edges */
-            padding: 6px 14px; 
-            border-radius: 50px; /* Forces it to stay a pill */
+            margin: 8px 12px; /* Expands to full width beautifully */
+            padding: 10px 16px; /* Slightly more internal padding */
+            border-radius: 40px; /* Retains perfect pill shape! No more rectangle. */
             background: rgba(30, 32, 42, 0.98); 
-            border: 1px solid transparent; /* Ensures no border on focus */
-            /* Glow on top and sides, subtle depth on bottom */
-            box-shadow: 
-                0 -25px 40px -15px rgba(138, 43, 226, 0.4), /* Top glow */
-                -25px 0 40px -20px rgba(138, 43, 226, 0.3), /* Left glow */
-                25px 0 40px -20px rgba(138, 43, 226, 0.3),  /* Right glow */
-                0 15px 30px rgba(0,0,0,0.6); /* Standard dark bottom shadow to pop */
-            transform: translateY(-2px); 
+            border-color: transparent; /* No more solid borders! */
+            /* Lite background glow (smooth soft aura) on top and sides */
+            box-shadow: 0 -4px 25px rgba(138, 43, 226, 0.15), 
+                        0 0 15px rgba(255, 69, 0, 0.1), 
+                        0 8px 30px rgba(0,0,0,0.4); 
+            transform: translateY(-2px); /* Slight premium lift */
         }
 
         .input-box {
@@ -624,14 +622,14 @@
             background: transparent;
             border: none;
             color: #f0f0f0; 
-            padding: 10px 8px; 
+            padding: 8px 6px; 
             font-size: 1.05rem;
             resize: none;
             max-height: 120px;
             outline: none;
             font-family: inherit;
             line-height: 1.4; 
-            box-sizing: border-box; /* Fixes multiline hidden cut-off text */
+            box-sizing: border-box; 
             overscroll-behavior-y: contain;
             -webkit-user-select: auto !important;
             user-select: auto !important;
@@ -656,54 +654,36 @@
         #char-counter.warning { color: #ff4500; font-weight: bold; }
 
         .plus-btn {
-            background: rgba(255, 255, 255, 0.05); border-radius: 50%; color: #8a2be2;
+            background: transparent; /* Cleaner to match smooth pill */
+            border-radius: 50%; color: #8a2be2;
             cursor: pointer; height: 38px; width: 38px; display: flex; align-items: center; justify-content: center;
-            align-self: flex-end; margin-bottom: 3px; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
+            align-self: flex-end; margin-bottom: 2px; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: none;
         }
-        .plus-btn:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+        .plus-btn:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
 
         .send-btn {
-            background: rgba(255, 255, 255, 0.05); /* Sleek translucent resting state */
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 50px; /* Match pill aesthetic */
-            min-width: 42px; width: 42px; height: 42px; display: none; 
+            background: linear-gradient(135deg, #8a2be2, #ff4500); /* Simple, elegant gradient */
+            border: none; border-radius: 50%; min-width: 38px; width: 38px; height: 38px; display: none; 
             align-items: center; justify-content: center; color: #fff; pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); align-self: flex-end;
-            margin-bottom: 2px; box-shadow: 0 0 10px rgba(0,0,0,0); position: relative; overflow: hidden;
-        }
-        .send-btn::after {
-            content: ''; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
-            background: rgba(255,255,255,0.5); opacity: 0; border-radius: 100%;
-            transform: scale(1) translate(-50%, -50%); transform-origin: 0 0;
-        }
-        .send-btn:active::after { animation: ripple 0.4s ease-out; }
-        @keyframes ripple {
-            0% { transform: scale(0) translate(-50%, -50%); opacity: 0.5; }
-            100% { transform: scale(20) translate(-50%, -50%); opacity: 0; }
+            transition: all 0.2s ease-out; align-self: flex-end;
+            margin-bottom: 2px; box-shadow: 0 4px 10px rgba(138, 43, 226, 0.2); 
         }
 
         .send-btn.active {
             cursor: pointer; pointer-events: auto; display: flex !important;
-            background: #ffffff; /* Pops completely when ready to send */
-            color: #0a0c14; /* Invert icon color */
-            border-color: #ffffff;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3); transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4); transform: scale(1);
         }
-        .send-btn.active .svg-icon {
-            fill: #0a0c14; /* Ensure icon is visible against white */
+        .send-btn:hover {
+            transform: scale(1.05); 
+            box-shadow: 0 6px 20px rgba(138, 43, 226, 0.5);
         }
         .send-btn:active { transform: scale(0.95); }
-        .send-btn.stop-mode { 
-            background: #ff4500; border-color: #ff4500; color: #fff; border-radius: 14px; /* Slight square to differentiate */
-            box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
-        }
-        .send-btn.stop-mode .svg-icon { fill: #fff; }
-        .send-btn.stop-mode:hover { background: #ff5722; }
+        .send-btn.stop-mode { background: #ff4500; box-shadow: 0 4px 15px rgba(255, 69, 0, 0.4); }
 
         .mic-btn-wrapper {
             width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-            position: relative; z-index: 100; align-self: flex-end; margin-bottom: 3px;
+            position: relative; z-index: 100; align-self: flex-end; margin-bottom: 2px;
         }
 
         .mic-btn {
@@ -711,6 +691,7 @@
             border-radius: 50%; background: transparent; color: #8a2be2; cursor: pointer;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); touch-action: none;
         }
+        .mic-btn:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
 
         #image-preview-container {
             display: none; position: absolute; bottom: 100%; left: 20px; margin-bottom: 15px; 
