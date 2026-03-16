@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quan-ai-core-v5';
+const CACHE_NAME = 'quan-ai-core-v13';
 const DYNAMIC_CACHE = 'quan-ai-dynamic-v1';
 
 const ASSETS_TO_CACHE = [
