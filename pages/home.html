@@ -924,12 +924,26 @@
             <span class="brand-title">Quan AI</span>
         </div>
         <img src="" alt="Profile" class="profile-pic" id="header-profile-pic" style="display: none;" onclick="window.vibrateLight(); window.location.href='settings.html';">
+        <script>
+            // 0ms load profile pic immediately after element parse to prevent visual delay
+            let syncPic = localStorage.getItem('quan_user_photo_b64');
+            if(syncPic) {
+                let pPic = document.getElementById('header-profile-pic');
+                pPic.src = syncPic;
+                pPic.style.display = 'block';
+            }
+        </script>
     </header>
 
     <main id="chat-flow">
         
         <div id="welcome-screen">
             <img src="../images/icon.png" alt="Quan AI Logo" class="center-logo no-select" id="welcome-logo">
+            <script>
+                // 0ms load logo to prevent flickering before modules load
+                let syncLogo = localStorage.getItem('quan_logo_base64');
+                if(syncLogo) document.getElementById('welcome-logo').src = syncLogo;
+            </script>
             <h1 class="welcome-title no-select" id="welcome-greeting">How can I help you today?</h1>
             
             <div class="suggestions-grid no-select">
@@ -1094,7 +1108,8 @@
         window.activeActionsEl = null; 
         window.justSentPrompt = false; // NEW: Ensures perfect prompt scrolling
 
-        // 0ms Apply Cached Logo & Profile Pic
+        // 0ms Apply Cached Logo & Profile Pic (Now handled synchronously in the HTML body to prevent module defer delay)
+        // Kept here for redundancy, but the inline scripts in the DOM handle it instantly now.
         const cachedLogo = localStorage.getItem('quan_logo_base64');
         if(cachedLogo) {
             document.getElementById('welcome-logo').src = cachedLogo;
@@ -1167,15 +1182,9 @@
                 welcomeGreeting.innerHTML = '<span style="color:#ff4500;">You are currently offline</span>';
                 return;
             }
-            const hour = new Date().getHours();
-            let greet = 'Good evening';
-            if (hour < 12) greet = 'Good morning';
-            else if (hour < 18) greet = 'Good afternoon';
-            
-            let formattedName = name ? name.split(' ')[0] : '';
-            if(formattedName) formattedName = formattedName.charAt(0).toUpperCase() + formattedName.slice(1).toLowerCase();
-            
-            welcomeGreeting.innerHTML = formattedName ? `${greet}, <span class="highlight">${formattedName}</span>.` : `${greet}.`;
+            // Reverted back to the standard static greeting. 
+            // Removed the dynamic time/name logic that caused the text to flicker.
+            welcomeGreeting.innerHTML = 'How can I help you today?';
             
             chatInput.placeholder = "Message Quan...";
         };
@@ -1235,12 +1244,12 @@
         /* ==========================================================================
            WELCOME SCREEN LOCAL STORAGE CACHE 
            ========================================================================== */
-        const cachedWelcomeHtml = localStorage.getItem('quan_welcome_html_v3');
+        const cachedWelcomeHtml = localStorage.getItem('quan_welcome_html_v4');
         if (cachedWelcomeHtml) {
             welcomeScreen.innerHTML = cachedWelcomeHtml;
         } else {
             setTimeout(() => {
-                localStorage.setItem('quan_welcome_html_v3', welcomeScreen.innerHTML);
+                localStorage.setItem('quan_welcome_html_v4', welcomeScreen.innerHTML);
             }, 2000);
         }
         updateGreeting(localStorage.getItem('quan_user_name')); 
@@ -1642,8 +1651,8 @@
             currentChatId = null;
             messagesContainer.innerHTML = '';
             
-            if (localStorage.getItem('quan_welcome_html_v3')) {
-                welcomeScreen.innerHTML = localStorage.getItem('quan_welcome_html_v3');
+            if (localStorage.getItem('quan_welcome_html_v4')) {
+                welcomeScreen.innerHTML = localStorage.getItem('quan_welcome_html_v4');
                 updateGreeting(localStorage.getItem('quan_user_name')); 
             }
             welcomeScreen.classList.remove('hidden');
