@@ -1,4 +1,6 @@
-const CACHE_NAME = 'quan-ai-dynamic-v1'; // Bumped once to clear the old stubborn cache
+const CACHE_NAME = 'quan-ai-core-v5';
+const DYNAMIC_CACHE = 'quan-ai-dynamic-v1';
+
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -20,40 +22,57 @@ self.addEventListener('install', (event) => {
   self.skipWaiting(); // Force the new service worker to activate immediately
 });
 
-// 2. Activate Event: Clean up any old caches
+// 2. Activate Event: Clean up ANY old caches to free up memory
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        keys.map(key => {
+          if (key !== CACHE_NAME && key !== DYNAMIC_CACHE) {
+            console.log('[Quan AI] Clearing Old Cache:', key);
+            return caches.delete(key);
+          }
+        })
       );
     })
   );
   self.clients.claim(); // Take control of all open pages right away
 });
 
-// 3. Fetch Event: NETWORK FIRST, fallback to Cache
+// 3. Fetch Event: ADVANCED ROUTING (Stale-While-Revalidate + Network First)
 self.addEventListener('fetch', (event) => {
-  // Only intercept standard GET requests
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        // Network request succeeded! The user is online.
-        // Clone the fresh response and update the cache in the background so it's always up-to-date.
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        
-        // Return the fresh network response to the screen
-        return networkResponse;
+  const url = new URL(event.request.url);
+
+  // STRATEGY 1: Network First (For HTML files so you always get the latest code)
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          return networkResponse;
+        })
+        .catch(() => {
+          // If offline, return the cached HTML
+          return caches.match(event.request);
+        })
+    );
+  } 
+  // STRATEGY 2: Cache First, Update in Background (For Images, JS, CSS, Icons)
+  else {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        // Return instantly from cache if found
+        const networkFetch = fetch(event.request).then((networkResponse) => {
+          // Silently update the cache in the background for next time
+          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, networkResponse.clone()));
+          return networkResponse;
+        }).catch(() => null);
+
+        return cachedResponse || networkFetch;
       })
-      .catch(() => {
-        // Network request failed (the user is offline). 
-        // Fall back to the latest saved version in the cache.
-        return caches.match(event.request);
-      })
-  );
+    );
+  }
 });
