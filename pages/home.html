@@ -45,10 +45,13 @@
             left: 0 !important; 
             top: 0 !important;
             overscroll-behavior: none !important;
-            overscroll-behavior-y: none !important; /* NEW: Kills pull-to-refresh loading bar on Android/iOS */
+            overscroll-behavior-y: none !important; 
             touch-action: none;
             margin: 0;
             padding: 0;
+            /* NEW: Global Disable Copy/Paste */
+            -webkit-user-select: none !important;
+            user-select: none !important;
         }
 
         .app-container { 
@@ -92,7 +95,7 @@
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            border-bottom: none !important; /* UPDATED: Removed border per your request */
+            border-bottom: none !important;
             z-index: 2000 !important;
             flex-shrink: 0;
         }
@@ -324,11 +327,11 @@
         }
 
         /* ==========================================================================
-           5. CHAT MESSAGES AREA 
+           5. CHAT MESSAGES AREA (UPDATED FOR PROFESSIONAL BUBBLES)
            ========================================================================== */
         #messages-container {
             flex-grow: 1 !important;
-            padding: 20px;
+            padding: 20px 10px; /* Slight side padding to prevent touching edges */
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -338,31 +341,33 @@
         .message-row {
             display: flex;
             width: 100%;
+            padding: 0 5px; /* Extra breathing room on sides */
         }
 
         .message-row.user { justify-content: flex-end; }
         .message-row.ai { justify-content: flex-start; }
 
         .bubble {
-            max-width: 85%;
-            padding: 14px 18px;
-            border-radius: 20px;
-            font-size: 0.95rem;
+            max-width: 90%; /* Expanded width for readability */
+            padding: 12px 18px;
+            font-size: 1rem;
             line-height: 1.5;
             word-wrap: break-word;
         }
 
         .bubble.user {
-            background: #2a2a35;
+            background: #2b2c38; /* Premium rich dark grey */
             color: #ffffff;
-            border-bottom-right-radius: 4px;
+            border-radius: 20px 20px 4px 20px; /* Modern dynamic rounding */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
 
         .bubble.ai {
-            background: linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(255, 69, 0, 0.1));
-            border: 1px solid rgba(138, 43, 226, 0.2);
-            color: #ffffff;
-            border-bottom-left-radius: 4px;
+            background: rgba(255, 255, 255, 0.05); /* Premium glass card */
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #f0f0f0;
+            border-radius: 20px 20px 20px 4px; /* Modern dynamic rounding */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .message-image {
@@ -373,7 +378,7 @@
         }
 
         /* ==========================================================================
-           6. FLAGSHIP CAPSULE INPUT AREA (PROFESSIONALLY UPDATED)
+           6. FLAGSHIP CAPSULE INPUT AREA 
            ========================================================================== */
         .input-area-container {
             background: transparent;
@@ -383,37 +388,36 @@
             width: 100%;
             z-index: 1000;
             position: relative;
-            margin-top: auto; /* Pushes it to the very bottom */
+            margin-top: auto; 
             touch-action: pan-y !important;
         }
 
         .input-area {
-            margin: 12px 24px; /* Compressed small look by default */
-            padding: 6px 10px; /* Thicker and more elegant */
+            margin: 12px 24px; 
+            padding: 6px 10px; 
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(18, 18, 24, 0.85); /* Richer dark glass background */
+            background: rgba(18, 18, 24, 0.85); 
             border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.08); /* More subtle, premium border */
+            border: 1px solid rgba(255, 255, 255, 0.08); 
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3); /* Cleaner resting shadow */
-            transform: scale(0.96); /* Physically smaller */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+            transform: scale(0.96); 
             transform-origin: bottom center;
             transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
             touch-action: none !important;
             position: relative;
         }
 
-        /* Expands beautifully when focused or when text is inside */
         .input-area:focus-within, .input-area.focused {
-            margin: 8px 12px; /* Expand full width */
-            transform: scale(1); /* Grow to full size */
-            border-radius: 28px; /* Slightly squarer on focus for typing area */
-            background: rgba(22, 22, 30, 0.98); /* Solid background on focus */
-            border-color: rgba(138, 43, 226, 0.6); /* Vibrant active border */
-            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.5); /* Ambient glow effect */
+            margin: 8px 12px; 
+            transform: scale(1); 
+            border-radius: 28px; 
+            background: rgba(22, 22, 30, 0.98); 
+            border-color: rgba(138, 43, 226, 0.6); 
+            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.5); 
         }
 
         .input-box {
@@ -423,19 +427,22 @@
             min-height: 40px;
         }
 
+        /* NEW: Allow copy-paste inside the input specifically */
         #chat-input {
             width: 100%;
             background: transparent;
             border: none;
-            color: #f0f0f0; /* Softer, premium white text */
-            padding: 10px 4px; /* Better vertical breathing room */
+            color: #f0f0f0; 
+            padding: 10px 4px; 
             font-size: 1.05rem;
             resize: none;
             max-height: 120px;
             outline: none;
             font-family: inherit;
-            line-height: 1.5; /* Enhanced readability */
+            line-height: 1.5; 
             overscroll-behavior-y: contain;
+            -webkit-user-select: auto !important;
+            user-select: auto !important;
         }
 
         #chat-input::placeholder {
@@ -470,7 +477,7 @@
             min-width: 38px;
             width: 38px;
             height: 38px;
-            display: none; /* Hide by default, show when active */
+            display: none; 
             align-items: center;
             justify-content: center;
             color: #fff;
@@ -628,7 +635,7 @@
         }
 
         /* ==========================================================================
-           8. NEW: THINKING INDICATOR & TYPING EFFECT CSS
+           8. THINKING INDICATOR & TYPING EFFECT CSS
            ========================================================================== */
         .thinking-wrapper {
             display: flex;
@@ -692,7 +699,7 @@
         @keyframes blink { 50% { opacity: 0; } }
 
         /* ==========================================================================
-           9. NEW: BOTTOM MODAL FOR CHAT OPTIONS (PIN & DELETE)
+           9. BOTTOM MODAL FOR CHAT OPTIONS
            ========================================================================== */
         #bottom-modal-overlay {
             position: fixed;
@@ -849,7 +856,7 @@
             </div>
             
             <button class="send-btn" id="send-btn" title="Send Message">
-                <span class="material-symbols-rounded">send</span>
+                <span class="material-symbols-rounded" id="send-btn-icon">send</span>
             </button>
 
             <div id="mic-btn-wrapper" class="mic-btn-wrapper">
@@ -885,6 +892,7 @@
         const messagesContainer = document.getElementById('messages-container');
         const chatFlow = document.getElementById('chat-flow');
         const sendBtn = document.getElementById('send-btn');
+        const sendIcon = document.getElementById('send-btn-icon'); // NEW
         const micBtnWrapper = document.getElementById('mic-btn-wrapper');
         const attachBtn = document.getElementById('attach-btn');
         const sidebar = document.getElementById('sidebar');
@@ -900,7 +908,6 @@
         const imagePreview = document.getElementById('image-preview');
         const removeImageBtn = document.getElementById('remove-image-btn');
 
-        // NEW: Modal DOM Elements
         const bottomModalOverlay = document.getElementById('bottom-modal-overlay');
         const chatOptionsModal = document.getElementById('chat-options-modal');
         const pinChatBtn = document.getElementById('pin-chat-btn');
@@ -911,12 +918,14 @@
         let currentChatId = null; 
         let messagesUnsubscribe = null; 
         let selectedImageBase64 = null;
-        let selectedChatIdForModal = null; // Tracks which chat was long-pressed
+        let selectedChatIdForModal = null; 
 
-        // NEW: Smart typing logic states
+        // Smart typing logic states
         window.isThinking = false;
+        window.isGenerating = false; // NEW: Gemini style generation tracker
+        window.activeTypeWriter = null; // NEW: Tracker to kill typing
         window.typedMessages = new Set(); 
-        window.isInitialChatLoad = true; // NEW: Solves the old chat typing bug!
+        window.isInitialChatLoad = true; 
 
         /* ==========================================================================
            1. INITIALIZATION & SECURITY ROUTING
@@ -940,7 +949,6 @@
                     headerProfilePic.style.display = 'block';
                     localStorage.setItem('quan_user_photo', user.photoURL);
                 } else {
-                    // Fallback to icon if user didn't upload a profile picture
                     headerProfilePic.src = '../images/icon.png';
                     headerProfilePic.style.display = 'block';
                 }
@@ -966,7 +974,36 @@
         });
 
         /* ==========================================================================
-           NEW: THINKING INDICATOR HELPER
+           NEW: DYNAMIC SEND / STOP BUTTON STATE CONTROLLER
+           ========================================================================== */
+        function updateSendBtnState() {
+            if (window.isGenerating) {
+                inputCapsule.classList.add('focused');
+                sendBtn.classList.add('active');
+                sendBtn.style.display = 'flex';
+                sendIcon.innerText = 'stop_circle'; // Morph to STOP button
+                micBtnWrapper.style.display = 'none';
+                attachBtn.style.display = 'none';
+            } else {
+                sendIcon.innerText = 'send';
+                if (chatInput.value.trim().length > 0 || selectedImageBase64) {
+                    inputCapsule.classList.add('focused');
+                    sendBtn.classList.add('active');
+                    sendBtn.style.display = 'flex';
+                    micBtnWrapper.style.display = 'none';
+                    attachBtn.style.display = 'none';
+                } else {
+                    inputCapsule.classList.remove('focused');
+                    sendBtn.classList.remove('active');
+                    sendBtn.style.display = 'none';
+                    micBtnWrapper.style.display = 'flex';
+                    attachBtn.style.display = 'flex';
+                }
+            }
+        }
+
+        /* ==========================================================================
+           THINKING INDICATOR HELPER
            ========================================================================== */
         function updateThinkingIndicator() {
             let thinkingEl = document.getElementById('quan-thinking-indicator');
@@ -1056,10 +1093,7 @@
                         imagePreview.src = selectedImageBase64;
                         imagePreviewContainer.style.display = 'block'; 
                         
-                        inputCapsule.classList.add('focused');
-                        sendBtn.classList.add('active'); 
-                        micBtnWrapper.style.display = 'none';
-                        attachBtn.style.display = 'none';
+                        updateSendBtnState(); // NEW: Triggers the UI swap
                     }
                     img.src = event.target.result;
                 };
@@ -1072,12 +1106,7 @@
             imagePreview.src = '';
             imagePreviewContainer.style.display = 'none';
             imageUpload.value = ''; 
-            if (chatInput.value.trim().length === 0) {
-                inputCapsule.classList.remove('focused');
-                sendBtn.classList.remove('active');
-                micBtnWrapper.style.display = 'flex';
-                attachBtn.style.display = 'flex';
-            }
+            updateSendBtnState(); // NEW: Triggers the UI swap
         });
 
         /* ==========================================================================
@@ -1086,19 +1115,7 @@
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-            
-            if (this.value.trim().length > 0 || selectedImageBase64) {
-                inputCapsule.classList.add('focused');
-                sendBtn.classList.add('active');
-                micBtnWrapper.style.display = 'none';
-                attachBtn.style.display = 'none';
-            } else {
-                inputCapsule.classList.remove('focused');
-                sendBtn.classList.remove('active');
-                micBtnWrapper.style.display = 'flex';
-                attachBtn.style.display = 'flex';
-            }
-            
+            updateSendBtnState(); // NEW: Triggers the UI swap dynamically
             chatFlow.scrollTo({ top: chatFlow.scrollHeight });
         });
 
@@ -1113,7 +1130,7 @@
         });
 
         chatInput.addEventListener('blur', () => {
-            if (chatInput.value.trim() === '' && !selectedImageBase64) {
+            if (chatInput.value.trim() === '' && !selectedImageBase64 && !window.isGenerating) {
                 inputCapsule.classList.remove('focused');
                 if (messagesContainer.children.length === 0) {
                     welcomeScreen.classList.remove('hidden');
@@ -1130,7 +1147,7 @@
         };
 
         /* ==========================================================================
-           NEW: MODAL & ENHANCED SIDEBAR NAVIGATION LOGIC
+           MODAL & ENHANCED SIDEBAR NAVIGATION LOGIC
            ========================================================================== */
         function openChatModal(chatId, isPinned) {
             selectedChatIdForModal = chatId;
@@ -1185,10 +1202,6 @@
             welcomeScreen.classList.remove('hidden');
             chatInput.value = '';
             chatInput.style.height = 'auto';
-            inputCapsule.classList.remove('focused');
-            sendBtn.classList.remove('active');
-            micBtnWrapper.style.display = 'flex';
-            attachBtn.style.display = 'flex';
             
             selectedImageBase64 = null;
             imagePreviewContainer.style.display = 'none';
@@ -1196,8 +1209,10 @@
             imageUpload.value = '';
 
             window.isThinking = false;
+            window.isGenerating = false; // reset
+            updateSendBtnState(); // apply reset
             window.typedMessages.clear();
-            window.isInitialChatLoad = true; // NEW: Reset typing flag for new chat
+            window.isInitialChatLoad = true; 
 
             if (messagesUnsubscribe) messagesUnsubscribe(); 
             toggleSidebar();
@@ -1205,23 +1220,19 @@
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
         });
 
-        // NEW: Database actions for modal buttons (Delete & Pin)
+        // Database actions for modal buttons (Delete & Pin)
         deleteChatBtn.addEventListener('click', async () => {
             if(!selectedChatIdForModal || !currentUser) return;
-            // Native confirm popup removed per request, automatically proceed to delete
-            const confirmDelete = true; 
-            if (confirmDelete) {
-                try {
-                    await deleteDoc(doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`));
-                    // Reset screen if we deleted the chat we are currently looking at
-                    if(currentChatId === selectedChatIdForModal) {
-                        newChatBtn.click();
-                    }
-                    closeChatModal();
-                    if (history.state && history.state.chatModalOpen) history.back();
-                } catch(e) {
-                    console.error("Error deleting chat", e);
+            // UPDATED: Native confirm popup removed per request, automatically proceed to delete
+            try {
+                await deleteDoc(doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`));
+                if(currentChatId === selectedChatIdForModal) {
+                    newChatBtn.click();
                 }
+                closeChatModal();
+                if (history.state && history.state.chatModalOpen) history.back();
+            } catch(e) {
+                console.error("Error deleting chat", e);
             }
         });
 
@@ -1253,10 +1264,6 @@
 
             chatInput.value = '';
             chatInput.style.height = 'auto';
-            inputCapsule.classList.remove('focused');
-            sendBtn.classList.remove('active');
-            micBtnWrapper.style.display = 'flex';
-            attachBtn.style.display = 'flex';
             welcomeScreen.classList.add('hidden'); 
             
             imagePreviewContainer.style.display = 'none';
@@ -1264,7 +1271,9 @@
             selectedImageBase64 = null;
             imageUpload.value = '';
 
-            window.isInitialChatLoad = false; // Turn off initial load flag so new incoming message gets typed!
+            window.isInitialChatLoad = false; 
+            window.isGenerating = true; // Lock UI into generation mode
+            updateSendBtnState();
 
             try {
                 if (!currentChatId) {
@@ -1278,7 +1287,7 @@
                         title: chatTitle,
                         updatedAt: serverTimestamp(),
                         createdAt: serverTimestamp(),
-                        pinned: false // New chats default to unpinned
+                        pinned: false 
                     });
 
                     listenToChat(currentChatId);
@@ -1307,14 +1316,33 @@
             } catch (error) {
                 console.error("Error sending message:", error);
                 alert("Error: Message failed to send.");
+                window.isGenerating = false;
+                updateSendBtnState();
             }
         }
 
-        sendBtn.addEventListener('click', handleSend);
+        // NEW: Dual-function Send Button (Send or Kill Generation)
+        sendBtn.addEventListener('click', (e) => {
+            if (window.isGenerating) {
+                e.preventDefault(); // Stop normal behavior
+                if (window.activeTypeWriter) {
+                    clearInterval(window.activeTypeWriter);
+                    window.activeTypeWriter = null;
+                }
+                document.querySelectorAll('.typing-cursor').forEach(el => el.classList.remove('typing-cursor'));
+                window.isGenerating = false;
+                window.isThinking = false;
+                updateThinkingIndicator();
+                updateSendBtnState();
+                return;
+            }
+            handleSend();
+        });
+
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                handleSend();
+                if(!window.isGenerating) handleSend(); // Block enter if generating
             }
         });
 
@@ -1342,7 +1370,7 @@
                     }
                 });
 
-                window.isInitialChatLoad = false; // Turn off initial load flag after first snapshot
+                window.isInitialChatLoad = false; 
 
                 messagesList.sort((a, b) => {
                     const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Infinity;
@@ -1380,15 +1408,20 @@
                                 textSpan.innerText = '';
                                 let i = 0;
                                 window.isThinking = false; 
+                                window.isGenerating = true; // Still generating
+                                updateSendBtnState();
                                 
-                                const typeWriter = setInterval(() => {
+                                window.activeTypeWriter = setInterval(() => {
                                     if (i < data.text.length) {
                                         textSpan.innerText += data.text.charAt(i);
                                         i++;
                                         chatFlow.scrollTo({ top: chatFlow.scrollHeight });
                                     } else {
-                                        clearInterval(typeWriter);
+                                        clearInterval(window.activeTypeWriter);
+                                        window.activeTypeWriter = null;
                                         textSpan.classList.remove('typing-cursor');
+                                        window.isGenerating = false;
+                                        updateSendBtnState();
                                     }
                                 }, 15); 
                             } else {
@@ -1405,11 +1438,15 @@
 
                 if (messagesList.length > 0 && messagesList[messagesList.length - 1].role === 'user') {
                     window.isThinking = true;
+                    window.isGenerating = true; 
                 } else if (isLastAi) {
-                    window.isThinking = false;
+                    if (!window.activeTypeWriter) window.isGenerating = false;
+                } else {
+                    window.isGenerating = false;
                 }
 
                 updateThinkingIndicator();
+                updateSendBtnState();
             });
         }
 
@@ -1436,7 +1473,6 @@
                     chats.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // Client-side sorting so pinned chats permanently stay at the top
                 chats.sort((a, b) => {
                     if (a.pinned && !b.pinned) return -1;
                     if (!a.pinned && b.pinned) return 1;
@@ -1457,7 +1493,6 @@
                     
                     chatEl.innerText = title;
 
-                    // Add visual pin icon to the right side if it's pinned
                     if (isPinned) {
                         const pinIcon = document.createElement('span');
                         pinIcon.className = 'material-symbols-rounded';
@@ -1468,7 +1503,6 @@
                         chatEl.appendChild(pinIcon);
                     }
 
-                    // Long Press Logic (Smart Timer)
                     let longPressTimer;
                     let isLongPressing = false;
 
@@ -1477,7 +1511,7 @@
                         longPressTimer = setTimeout(() => {
                             isLongPressing = true;
                             openChatModal(chatId, isPinned);
-                        }, 600); // Triggers modal after 600ms hold
+                        }, 600); 
                     };
                     const cancelPress = () => clearTimeout(longPressTimer);
 
@@ -1489,7 +1523,6 @@
                     chatEl.addEventListener('mouseup', cancelPress);
                     chatEl.addEventListener('mouseleave', cancelPress);
 
-                    // Normal click logic (canceled if it was a long press)
                     chatEl.onclick = (e) => {
                         if (isLongPressing) {
                             e.preventDefault();
@@ -1502,7 +1535,7 @@
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         chatEl.classList.add('active');
                         
-                        window.isInitialChatLoad = true; // Tell the listener this is an old chat opening
+                        window.isInitialChatLoad = true; 
                         listenToChat(chatId);
                         
                         if (window.innerWidth <= 768) {
