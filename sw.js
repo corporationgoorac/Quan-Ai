@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quan-ai-v1';
+const CACHE_NAME = 'quan-ai-v2'; // CHANGED: Bumping to v2 forces the cache to clear!
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -13,10 +13,11 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Quan AI: Caching shell assets');
+      console.log('Quan AI: Caching shell assets v2');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
+  self.skipWaiting(); // Force the new service worker to activate immediately
 });
 
 // 2. Activate Event: Clean up old caches
@@ -28,6 +29,7 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  self.clients.claim(); // Take control of all open pages right away
 });
 
 // 3. Fetch Event: Serve from cache first, then network
