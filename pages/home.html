@@ -340,7 +340,7 @@
         }
 
         /* ==========================================================================
-           6. FLAGSHIP CAPSULE INPUT AREA (IMPORTED FROM GROUPCHAT.HTML)
+           6. FLAGSHIP CAPSULE INPUT AREA
            ========================================================================== */
         .input-area-container {
             background: transparent;
@@ -352,30 +352,30 @@
         }
 
         .input-area {
-            margin: 12px 16px;
-            padding: 4px 8px;
+            margin: 12px 24px !important; /* Compressed small look by default */
+            padding: 4px 8px !important;
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(30, 30, 36, 0.85);
-            border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            box-shadow: 0 -2px 15px rgba(138, 43, 226, 0.15), 0 8px 25px rgba(0,0,0,0.4);
-            transform: scale(0.96);
-            transform-origin: bottom center;
-            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: rgba(30, 30, 36, 0.75) !important; /* Slightly transparent when idle */
+            border-radius: 40px !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            backdrop-filter: blur(25px) !important;
+            -webkit-backdrop-filter: blur(25px) !important;
+            box-shadow: 0 -2px 15px rgba(138, 43, 226, 0.15), 0 8px 25px rgba(0,0,0,0.4) !important;
+            transform: scale(0.95) !important; /* Physically smaller */
+            transform-origin: bottom center !important;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
             touch-action: none !important;
         }
 
         .input-area.focused {
-            margin: 8px 12px;
-            transform: scale(1);
-            border-radius: 26px;
-            background: rgba(25, 25, 35, 0.95);
-            border-color: #8a2be2;
-            box-shadow: 0 -2px 20px rgba(138, 43, 226, 0.3), 0 8px 25px rgba(138, 43, 226, 0.25);
+            margin: 8px 12px !important; /* Expand full width */
+            transform: scale(1) !important; /* Grow to full size */
+            border-radius: 26px !important;
+            background: rgba(25, 25, 35, 0.98) !important; /* Solid background on focus */
+            border-color: #8a2be2 !important;
+            box-shadow: 0 -2px 20px rgba(138, 43, 226, 0.3), 0 8px 25px rgba(138, 43, 226, 0.25) !important;
         }
 
         .input-box {
@@ -725,7 +725,7 @@
         });
 
         /* ==========================================================================
-           VIEWPORT LOCK LOGIC (From GroupChat.html)
+           VIEWPORT LOCK LOGIC (AGGRESSIVE ANTI-SCROLL)
            ========================================================================== */
         function lockViewportAndHeader() {
             const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -749,6 +749,15 @@
         }
         window.addEventListener('resize', lockViewportAndHeader);
         window.addEventListener('scroll', lockViewportAndHeader, { passive: true });
+
+        // AGGRESSIVE SCROLL LOCK INTERVAL: Prevents browser from jumping when keyboard opens
+        setInterval(() => {
+            if (document.activeElement === chatInput || window.scrollY > 0 || document.body.scrollTop > 0) {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+            }
+        }, 50);
 
         /* ==========================================================================
            IMAGE COMPRESSION LOGIC
@@ -823,6 +832,7 @@
                 welcomeScreen.classList.add('hidden');
             }
             // Trigger viewport lock immediately when keyboard rises
+            setTimeout(lockViewportAndHeader, 10);
             setTimeout(lockViewportAndHeader, 50);
             setTimeout(lockViewportAndHeader, 300);
         });
