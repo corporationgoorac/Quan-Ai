@@ -21,6 +21,7 @@
         body, html {
             width: 100%;
             height: 100%;
+            height: 100dvh !important; /* Added: Locks the viewport size dynamically to prevent keyboard scrolling */
             background-color: #0a0c14;
             color: #ffffff;
             font-family: 'Inter', -apple-system, system-ui, sans-serif;
@@ -53,7 +54,9 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: none !important; /* Added: Removes border as requested without deleting previous line */
             position: absolute;
+            position: fixed !important; /* Added: Locks header to the very top permanently, ignoring keyboard pushes */
             top: 0;
             width: 100%;
             z-index: 100;
@@ -420,9 +423,112 @@
             #input-wrapper { width: 95%; bottom: 15px; }
             #input-wrapper.focused { width: 98%; }
         }
+
+        /* ==========================================================================
+           7. INSTALL BANNER (Added Professional UI)
+           ========================================================================== */
+        #install-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(10, 12, 20, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: none; 
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(138, 43, 226, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            transform: translateY(-100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #install-banner.visible {
+            display: flex;
+            transform: translateY(0);
+        }
+
+        .install-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .install-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.2);
+        }
+
+        .install-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .install-text strong {
+            font-size: 0.95rem;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        .install-text span {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .install-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #install-btn {
+            background: linear-gradient(90deg, #8a2be2, #ff4500);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        #install-btn:active {
+            transform: scale(0.95);
+        }
+
+        #close-install-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+
+    <div id="install-banner" class="no-select">
+        <div class="install-info">
+            <img src="../images/icon.png" alt="Quan AI Icon" class="install-icon">
+            <div class="install-text">
+                <strong>Quan AI</strong>
+                <span>Install app for full-screen experience</span>
+            </div>
+        </div>
+        <div class="install-actions">
+            <button id="install-btn">Install</button>
+            <button id="close-install-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+    </div>
 
     <div id="sidebar-overlay" class="no-select"></div>
 
@@ -610,16 +716,36 @@
         };
 
         /* ==========================================================================
-           3. SIDEBAR NAVIGATION
+           3. SIDEBAR NAVIGATION & MOBILE BACK BUTTON LOGIC
            ========================================================================== */
         const toggleSidebar = () => {
             sidebar.classList.toggle('open');
             sidebarOverlay.classList.toggle('show');
+            
+            // --- NEW: History API Logic for Mobile Back Button ---
+            // If we just opened the sidebar, push a new state to the browser history
+            if (sidebar.classList.contains('open')) {
+                history.pushState({ sidebarOpen: true }, "");
+            } else {
+                // If we manually closed it (via button), remove that history state
+                if (history.state && history.state.sidebarOpen) {
+                    history.back(); 
+                }
+            }
         };
 
         openSidebarBtn.addEventListener('click', toggleSidebar);
         closeSidebarBtn.addEventListener('click', toggleSidebar);
         sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        // --- NEW: Intercept the Android Hardware Back Button ---
+        window.addEventListener('popstate', (e) => {
+            // If the user presses the phone's back button and the sidebar is open, close it!
+            if (sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('show');
+            }
+        });
 
         // Reset to new chat
         newChatBtn.addEventListener('click', () => {
@@ -750,7 +876,84 @@
                 </div>
             `;
         }
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Ensure the path correctly points to sw.js in your root folder
+                navigator.serviceWorker.register('../sw.js')
+                    .then(registration => {
+                        console.log('[Quan AI] Service Worker successfully registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('[Quan AI] Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 
+    <script>
+        let deferredPrompt;
+        const installBanner = document.getElementById('install-banner');
+        const installBtn = document.getElementById('install-btn');
+        const closeInstallBtn = document.getElementById('close-install-btn');
+
+        // Check if user already dismissed the prompt previously
+        const isInstallDismissed = localStorage.getItem('quan_install_dismissed');
+
+        // Listen for the native browser install prompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the default mini-infobar from appearing
+            e.preventDefault();
+            
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            
+            // If they haven't dismissed it, slide our custom professional banner down
+            if (!isInstallDismissed) {
+                setTimeout(() => {
+                    installBanner.style.display = 'flex';
+                    // Trigger reflow to ensure the CSS transition animates smoothly
+                    void installBanner.offsetWidth; 
+                    installBanner.classList.add('visible');
+                }, 1000); // Wait 1 second after load so it feels natural
+            }
+        });
+
+        // Handle Install Button Click
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            // Show the native browser install prompt
+            deferredPrompt.prompt();
+            
+            // Wait for the user to respond to the native prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`[Quan AI] User response to install prompt: ${outcome}`);
+            
+            // Clear the deferredPrompt variable, it can only be used once
+            deferredPrompt = null;
+            
+            // Hide our custom banner smoothly
+            installBanner.classList.remove('visible');
+            setTimeout(() => installBanner.style.display = 'none', 400);
+        });
+
+        // Handle Close Button Click
+        closeInstallBtn.addEventListener('click', () => {
+            installBanner.classList.remove('visible');
+            setTimeout(() => installBanner.style.display = 'none', 400);
+            // Save preference so we never bother them again on this device
+            localStorage.setItem('quan_install_dismissed', 'true');
+        });
+
+        // If the app is successfully installed outside of our button (e.g. from browser menu)
+        window.addEventListener('appinstalled', () => {
+            installBanner.style.display = 'none';
+            deferredPrompt = null;
+            console.log('[Quan AI] PWA was successfully installed');
+        });
     </script>
 </body>
 </html>
