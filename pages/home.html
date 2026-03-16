@@ -579,31 +579,36 @@
         }
 
         .input-area {
-            margin: 16px 36px; /* Small, compact width */
-            padding: 6px 12px; 
+            margin: 16px 20px; /* Adjusted for better pill width */
+            padding: 6px 14px; 
             display: flex;
             align-items: flex-end;
             gap: 8px;
             background: rgba(26, 28, 36, 0.85); 
-            border-radius: 40px; /* Perfect pill shape */
-            border: 1px solid rgba(255, 255, 255, 0.05); 
+            border-radius: 50px; /* Perfect solid pill shape */
+            border: 1px solid transparent; /* Removed borders for cleaner look */
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
             transform: translateY(0);
-            transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); /* Premium fluid spring */
+            transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); 
             touch-action: none !important;
             position: relative;
         }
 
         .input-area:focus-within, .input-area.focused {
-            margin: 8px 12px; /* Expands to full width */
-            padding: 10px 14px; /* More internal breathing room */
-            border-radius: 24px; /* Smooth rounded rectangle */
+            margin: 16px 20px; /* Keeps the pill shape consistently sized, doesn't expand to edges */
+            padding: 6px 14px; 
+            border-radius: 50px; /* Forces it to stay a pill */
             background: rgba(30, 32, 42, 0.98); 
-            border-color: rgba(138, 43, 226, 0.6); 
-            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.3), 0 12px 40px rgba(0,0,0,0.5); 
-            transform: translateY(-2px); /* Slight premium lift */
+            border: 1px solid transparent; /* Ensures no border on focus */
+            /* Glow on top and sides, subtle depth on bottom */
+            box-shadow: 
+                0 -25px 40px -15px rgba(138, 43, 226, 0.4), /* Top glow */
+                -25px 0 40px -20px rgba(138, 43, 226, 0.3), /* Left glow */
+                25px 0 40px -20px rgba(138, 43, 226, 0.3),  /* Right glow */
+                0 15px 30px rgba(0,0,0,0.6); /* Standard dark bottom shadow to pop */
+            transform: translateY(-2px); 
         }
 
         .input-box {
@@ -659,11 +664,13 @@
         .plus-btn:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
 
         .send-btn {
-            background: linear-gradient(135deg, #8a2be2, #ff4500);
-            border: none; border-radius: 50%; min-width: 38px; width: 38px; height: 38px; display: none; 
+            background: rgba(255, 255, 255, 0.05); /* Sleek translucent resting state */
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 50px; /* Match pill aesthetic */
+            min-width: 42px; width: 42px; height: 42px; display: none; 
             align-items: center; justify-content: center; color: #fff; pointer-events: none;
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); align-self: flex-end;
-            margin-bottom: 3px; box-shadow: 0 4px 15px rgba(138, 43, 226, 0); position: relative; overflow: hidden;
+            margin-bottom: 2px; box-shadow: 0 0 10px rgba(0,0,0,0); position: relative; overflow: hidden;
         }
         .send-btn::after {
             content: ''; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
@@ -678,10 +685,21 @@
 
         .send-btn.active {
             cursor: pointer; pointer-events: auto; display: flex !important;
-            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4); transform: scale(1.05);
+            background: #ffffff; /* Pops completely when ready to send */
+            color: #0a0c14; /* Invert icon color */
+            border-color: #ffffff;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3); transform: scale(1.05);
         }
-        .send-btn:active { transform: scale(0.9); }
-        .send-btn.stop-mode:hover { background: #ff4500; }
+        .send-btn.active .svg-icon {
+            fill: #0a0c14; /* Ensure icon is visible against white */
+        }
+        .send-btn:active { transform: scale(0.95); }
+        .send-btn.stop-mode { 
+            background: #ff4500; border-color: #ff4500; color: #fff; border-radius: 14px; /* Slight square to differentiate */
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+        }
+        .send-btn.stop-mode .svg-icon { fill: #fff; }
+        .send-btn.stop-mode:hover { background: #ff5722; }
 
         .mic-btn-wrapper {
             width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
