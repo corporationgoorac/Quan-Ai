@@ -2096,8 +2096,8 @@
                     localStorage.setItem('chat_html_' + chatId, messagesContainer.innerHTML);
                 }
 
-                // PERFECT SCROLLING FIX
-                setTimeout(() => {
+                // PERFECT SCROLLING FIX - UPGRADED FOR ZERO JUMP
+                const applyScrollLock = () => {
                     if (initialLoad) {
                         if (lastUserMessageEl) {
                             const headerOffset = 70; 
@@ -2116,9 +2116,11 @@
                                 behavior: 'smooth'
                             });
                         }
-                        window.justSentPrompt = false; 
                     }
-                }, 150); 
+                };
+                applyScrollLock(); // Instant lock
+                setTimeout(applyScrollLock, 50); // Catch layout shift
+                setTimeout(() => { applyScrollLock(); window.justSentPrompt = false; }, 150); // Final settle
             });
         }
 
