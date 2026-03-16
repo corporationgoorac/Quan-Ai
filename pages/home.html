@@ -327,7 +327,7 @@
         }
 
         /* ==========================================================================
-           5. CHAT MESSAGES AREA (UPDATED FOR PROFESSIONAL BUBBLES)
+           5. CHAT MESSAGES AREA 
            ========================================================================== */
         #messages-container {
             flex-grow: 1 !important;
@@ -347,7 +347,7 @@
         .message-row.user { justify-content: flex-end; }
         .message-row.ai { justify-content: flex-start; }
 
-        /* NEW: Wrapper to hold bubble and Gemini action buttons together */
+        /* Wrapper to hold bubble and Gemini action buttons together */
         .message-wrapper {
             display: flex;
             flex-direction: column;
@@ -386,7 +386,7 @@
             display: block;
         }
 
-        /* NEW: Gemini Style Action Buttons CSS */
+        /* Gemini Style Action Buttons CSS */
         .message-actions {
             display: flex;
             gap: 8px;
@@ -745,7 +745,7 @@
         @keyframes blink { 50% { opacity: 0; } }
 
         /* ==========================================================================
-           9. BOTTOM MODAL FOR CHAT OPTIONS (PIN & DELETE)
+           9. BOTTOM MODAL FOR CHAT OPTIONS 
            ========================================================================== */
         #bottom-modal-overlay {
             position: fixed;
@@ -844,6 +844,38 @@
             50% { opacity: 1; }
         }
 
+        /* ==========================================================================
+           11. NEW: SCROLL TO BOTTOM BUTTON
+           ========================================================================== */
+        #scroll-bottom-btn {
+            position: absolute;
+            bottom: 90px; 
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(30, 30, 36, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1500;
+            opacity: 0;
+            pointer-events: none;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #scroll-bottom-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0);
+        }
+
     </style>
 </head>
 <body>
@@ -921,6 +953,10 @@
             </div>
 
     </main>
+
+    <div id="scroll-bottom-btn" class="no-select">
+        <span class="material-symbols-rounded">arrow_downward</span>
+    </div>
 
     <div class="input-area-container">
         
@@ -1011,6 +1047,7 @@
         const deleteChatBtn = document.getElementById('delete-chat-btn');
         
         const voiceVisualizer = document.getElementById('voice-visualizer'); 
+        const scrollBottomBtn = document.getElementById('scroll-bottom-btn'); // NEW
 
         let currentUser = null;
         let currentChatId = null; 
@@ -1024,7 +1061,25 @@
         window.activeTypeWriter = null; 
         window.typedMessages = new Set(); 
         window.isInitialChatLoad = true; 
-        window.activeActionsEl = null; // NEW: Tracks the actions bar to show after typing
+        window.activeActionsEl = null; 
+
+        /* ==========================================================================
+           NEW: SCROLL BUTTON LOGIC
+           ========================================================================== */
+        chatFlow.addEventListener('scroll', () => {
+            if (!scrollBottomBtn) return;
+            // Show arrow if scrolled up more than 150px from bottom
+            const isScrolledUp = chatFlow.scrollHeight - chatFlow.scrollTop - chatFlow.clientHeight > 150;
+            if (isScrolledUp) {
+                scrollBottomBtn.classList.add('visible');
+            } else {
+                scrollBottomBtn.classList.remove('visible');
+            }
+        });
+
+        scrollBottomBtn.addEventListener('click', () => {
+            chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'smooth' });
+        });
 
         /* ==========================================================================
            VOICE RECOGNITION SETUP
@@ -1177,7 +1232,11 @@
 
             if (window.isThinking) {
                 thinkingEl.classList.add('active');
-                chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'smooth' });
+                // Ensure we see the thinking animation if we are reasonably close to bottom
+                const isScrolledUp = chatFlow.scrollHeight - chatFlow.scrollTop - chatFlow.clientHeight > 150;
+                if(!isScrolledUp) {
+                    chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'smooth' });
+                }
             } else {
                 thinkingEl.classList.remove('active');
             }
@@ -1195,13 +1254,6 @@
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
             document.body.style.top = '0px';
-            
-            if (messagesContainer && messagesContainer.children.length > 0) {
-                chatFlow.scrollTo({
-                    top: chatFlow.scrollHeight,
-                    behavior: 'auto'
-                });
-            }
         }
 
         if (window.visualViewport) {
@@ -1270,7 +1322,6 @@
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
             updateSendBtnState(); 
-            chatFlow.scrollTo({ top: chatFlow.scrollHeight });
         });
 
         chatInput.addEventListener('focus', () => {
@@ -1487,7 +1538,7 @@
                 }
                 document.querySelectorAll('.typing-cursor').forEach(el => el.classList.remove('typing-cursor'));
                 
-                // NEW: Unhide the action bar immediately if stopped!
+                // Unhide the action bar immediately if stopped!
                 if (window.activeActionsEl) window.activeActionsEl.classList.remove('hidden');
                 window.activeActionsEl = null;
 
@@ -1531,7 +1582,7 @@
                     }
                 });
 
-                const initialLoad = window.isInitialChatLoad; // Track locally for the auto-scroll
+                const initialLoad = window.isInitialChatLoad; 
                 window.isInitialChatLoad = false; 
 
                 messagesList.sort((a, b) => {
@@ -1541,12 +1592,16 @@
                 });
                 
                 let isLastAi = false;
+                let lastUserMessageEl = null; // NEW: Track the last user message element
 
                 messagesList.forEach((data, index) => {
                     const row = document.createElement('div');
                     row.className = `message-row ${data.role}`;
                     
-                    // NEW: Flex Wrapper to hold Bubble + Actions together
+                    if (data.role === 'user') {
+                        lastUserMessageEl = row;
+                    }
+
                     const wrapper = document.createElement('div');
                     wrapper.className = `message-wrapper ${data.role}`;
 
@@ -1569,7 +1624,6 @@
                         const isLastItem = (index === messagesList.length - 1);
                         
                         if (data.role === 'ai') {
-                            // NEW: Gemini Style Action Bar
                             actionsContainer = document.createElement('div');
                             actionsContainer.className = 'message-actions';
                             
@@ -1598,7 +1652,6 @@
                             actionsContainer.appendChild(shareBtn);
                             actionsContainer.appendChild(speakBtn);
 
-                            // Smart Typer logic
                             if (isLastItem) {
                                 isLastAi = true;
                                 if (!window.typedMessages.has(data.docId)) {
@@ -1606,7 +1659,6 @@
                                     textSpan.classList.add('typing-cursor');
                                     textSpan.innerText = '';
                                     
-                                    // Hide actions while typing!
                                     actionsContainer.classList.add('hidden');
                                     window.activeActionsEl = actionsContainer;
 
@@ -1619,13 +1671,12 @@
                                         if (i < data.text.length) {
                                             textSpan.innerText += data.text.charAt(i);
                                             i++;
-                                            chatFlow.scrollTo({ top: chatFlow.scrollHeight });
+                                            /* AUTO SCROLL DISABLED HERE PER REQUEST SO USER CAN READ WHILE TYPING */
                                         } else {
                                             clearInterval(window.activeTypeWriter);
                                             window.activeTypeWriter = null;
                                             textSpan.classList.remove('typing-cursor');
                                             
-                                            // Unhide actions instantly when finished!
                                             actionsContainer.classList.remove('hidden');
                                             window.activeActionsEl = null;
 
@@ -1662,12 +1713,25 @@
                 updateThinkingIndicator();
                 updateSendBtnState();
 
-                // NEW: Perfect scroll to bottom on historical chat load
+                // NEW: Perfect scroll handling (Gemini style)
                 setTimeout(() => {
-                    chatFlow.scrollTo({
-                        top: chatFlow.scrollHeight,
-                        behavior: initialLoad ? 'auto' : 'smooth'
-                    });
+                    if (initialLoad) {
+                        // If it's an old chat loading, scroll instantly to the bottom
+                        chatFlow.scrollTo({
+                            top: chatFlow.scrollHeight,
+                            behavior: 'auto'
+                        });
+                    } else if (messagesList.length > 0 && messagesList[messagesList.length - 1].role === 'user') {
+                        // NEW: If user just sent a message, intelligently scroll that specific message to the top!
+                        if (lastUserMessageEl) {
+                            const headerOffset = 80; // Safe area + header height
+                            chatFlow.scrollTo({
+                                top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
+                                behavior: 'smooth'
+                            });
+                        }
+                    }
+                    // Notice we DO NOT scroll if the AI is actively typing, per your request.
                 }, 150);
             });
         }
