@@ -77,6 +77,7 @@
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: none !important; /* UPDATED: Removed border per your request */
             z-index: 2000 !important;
             flex-shrink: 0;
         }
@@ -608,6 +609,71 @@
             padding: 4px;
             cursor: pointer;
         }
+
+        /* ==========================================================================
+           8. NEW: THINKING INDICATOR & TYPING EFFECT CSS
+           ========================================================================== */
+        .thinking-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 18px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: none;
+            margin-top: 5px;
+        }
+        .thinking-wrapper.active {
+            display: flex;
+            opacity: 1;
+        }
+        .thinking-logo-container {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .thinking-logo {
+            width: 24px;
+            height: 24px;
+            z-index: 2;
+            border-radius: 50%;
+            animation: pulse-logo 2s ease-in-out infinite;
+        }
+        .thinking-spinner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid transparent;
+            border-top-color: #8a2be2;
+            border-right-color: #ff4500;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 1;
+        }
+        .thinking-text {
+            font-size: 0.9rem;
+            background: linear-gradient(90deg, #8a2be2, #ff4500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 500;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .typing-cursor::after {
+            content: '▋';
+            animation: blink 1s step-start infinite;
+            color: #8a2be2;
+            margin-left: 2px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        @keyframes pulse-logo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes blink { 50% { opacity: 0; } }
+
     </style>
 </head>
 <body>
@@ -718,7 +784,9 @@
         </div>
     </div>
 
-</div> <script type="module">
+</div> 
+
+    <script type="module">
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
@@ -749,6 +817,10 @@
         let currentChatId = null; 
         let messagesUnsubscribe = null; 
         let selectedImageBase64 = null;
+
+        // NEW: Smart typing logic states
+        window.isThinking = false;
+        window.typedMessages = new Set(); 
 
         /* ==========================================================================
            1. INITIALIZATION & SECURITY ROUTING
@@ -786,6 +858,33 @@
                 window.location.replace("login.html");
             }
         });
+
+        /* ==========================================================================
+           NEW: THINKING INDICATOR HELPER
+           ========================================================================== */
+        function updateThinkingIndicator() {
+            let thinkingEl = document.getElementById('quan-thinking-indicator');
+            if (!thinkingEl) {
+                thinkingEl = document.createElement('div');
+                thinkingEl.id = 'quan-thinking-indicator';
+                thinkingEl.className = 'thinking-wrapper';
+                thinkingEl.innerHTML = `
+                    <div class="thinking-logo-container">
+                        <div class="thinking-spinner"></div>
+                        <img src="../images/icon.png" class="thinking-logo">
+                    </div>
+                    <div class="thinking-text">Quan is thinking...</div>
+                `;
+            }
+            messagesContainer.appendChild(thinkingEl);
+
+            if (window.isThinking) {
+                thinkingEl.classList.add('active');
+                chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'smooth' });
+            } else {
+                thinkingEl.classList.remove('active');
+            }
+        }
 
         /* ==========================================================================
            VIEWPORT LOCK LOGIC (AGGRESSIVE ANTI-SCROLL FROM GROUPCHAT.HTML)
@@ -967,6 +1066,9 @@
             imagePreview.src = '';
             imageUpload.value = '';
 
+            window.isThinking = false;
+            window.typedMessages.clear();
+
             if (messagesUnsubscribe) messagesUnsubscribe(); 
             toggleSidebar();
             
@@ -1048,7 +1150,7 @@
         });
 
         /* ==========================================================================
-           DATABASE LISTENERS
+           DATABASE LISTENERS (WITH TYPING EFFECT)
            ========================================================================== */
         
         function listenToChat(chatId) {
@@ -1061,7 +1163,7 @@
                 messagesContainer.innerHTML = ''; 
                 
                 let messagesList = [];
-                snapshot.forEach((doc) => messagesList.push(doc.data()));
+                snapshot.forEach((doc) => messagesList.push({ ...doc.data(), docId: doc.id }));
 
                 messagesList.sort((a, b) => {
                     const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Infinity;
@@ -1069,7 +1171,9 @@
                     return timeA - timeB;
                 });
                 
-                messagesList.forEach((data) => {
+                let isLastAi = false;
+
+                messagesList.forEach((data, index) => {
                     const row = document.createElement('div');
                     row.className = `message-row ${data.role}`;
                     const bubble = document.createElement('div');
@@ -1081,20 +1185,53 @@
                         img.className = 'message-image';
                         bubble.appendChild(img);
                     }
+                    
                     if (data.text) {
                         const textSpan = document.createElement('span');
-                        textSpan.innerText = data.text;
                         bubble.appendChild(textSpan);
+                        
+                        const isLastItem = (index === messagesList.length - 1);
+                        
+                        // Smart Typer: Only type if it's the very last message, from AI, and hasn't been typed before
+                        if (data.role === 'ai' && isLastItem) {
+                            isLastAi = true;
+                            if (!window.typedMessages.has(data.docId)) {
+                                window.typedMessages.add(data.docId);
+                                textSpan.classList.add('typing-cursor');
+                                textSpan.innerText = '';
+                                let i = 0;
+                                window.isThinking = false; // Turn off the thinking wheel when typing begins
+                                
+                                const typeWriter = setInterval(() => {
+                                    if (i < data.text.length) {
+                                        textSpan.innerText += data.text.charAt(i);
+                                        i++;
+                                        chatFlow.scrollTo({ top: chatFlow.scrollHeight });
+                                    } else {
+                                        clearInterval(typeWriter);
+                                        textSpan.classList.remove('typing-cursor');
+                                    }
+                                }, 15); // Adjust this number for faster/slower typing
+                            } else {
+                                textSpan.innerText = data.text; // Skip typing if we already typed it
+                            }
+                        } else {
+                            textSpan.innerText = data.text; // Skip typing for user messages or old AI messages
+                        }
                     }
                     
                     row.appendChild(bubble);
                     messagesContainer.appendChild(row);
                 });
 
-                chatFlow.scrollTo({
-                    top: chatFlow.scrollHeight,
-                    behavior: 'smooth'
-                });
+                // Auto-toggle the "Thinking" wheel depending on who sent the last message
+                if (messagesList.length > 0 && messagesList[messagesList.length - 1].role === 'user') {
+                    window.isThinking = true;
+                } else if (isLastAi) {
+                    window.isThinking = false;
+                }
+
+                updateThinkingIndicator();
             });
         }
 
