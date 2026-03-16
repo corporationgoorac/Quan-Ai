@@ -14,6 +14,17 @@
         /* ==========================================================================
            1. CORE FOUNDATION & RESET
            ========================================================================== */
+        :root {
+            --bg-main: #0a0c14;
+            --bg-panel: #0d0f1a;
+            --accent-primary: #8a2be2;
+            --accent-secondary: #ff4500;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --glass-bg: rgba(18, 18, 24, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -21,6 +32,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* HIDE SCROLLBARS GLOBALLY FOR SLEEK UI, EXCEPT TEXTAREA */
         ::-webkit-scrollbar {
             width: 0px;
             background: transparent;
@@ -31,13 +43,14 @@
             scrollbar-width: none;  
         }
 
+        /* PERFECT VIEWPORT LOCK */
         html, body {
             height: 100vh !important; 
             height: 100dvh !important;
             width: 100vw !important;
             overflow: hidden !important;
-            background-color: #0a0c14;
-            color: #ffffff;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
             font-family: 'Inter', -apple-system, system-ui, sans-serif;
             position: fixed !important; 
             left: 0 !important; 
@@ -68,7 +81,6 @@
             user-select: none;
         }
 
-        /* SVG Icon Class for 0ms rendering */
         .svg-icon {
             width: 24px;
             height: 24px;
@@ -80,7 +92,10 @@
         .material-symbols-rounded {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             cursor: pointer;
-            transition: color 0.3s ease;
+            transition: color 0.3s ease, transform 0.2s ease;
+        }
+        .material-symbols-rounded:active {
+            transform: scale(0.9);
         }
 
         /* ==========================================================================
@@ -103,6 +118,7 @@
             border-bottom: none !important; 
             z-index: 2000 !important;
             flex-shrink: 0;
+            transition: background 0.3s ease;
         }
 
         .header-left {
@@ -131,9 +147,10 @@
             font-size: 1.1rem;
             font-weight: 600;
             letter-spacing: 1px;
-            background: linear-gradient(90deg, #8a2be2, #ff4500);
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            cursor: pointer;
         }
 
         .profile-pic {
@@ -143,11 +160,12 @@
             object-fit: cover;
             border: 1px solid rgba(138, 43, 226, 0.5);
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .profile-pic:active {
             transform: scale(0.9);
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.4);
         }
 
         /* ==========================================================================
@@ -159,7 +177,7 @@
             left: -300px;
             width: 300px;
             height: 100%;
-            background: #0d0f1a;
+            background: var(--bg-panel);
             border-right: 1px solid rgba(255, 255, 255, 0.05);
             z-index: 3000;
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -240,7 +258,7 @@
         .chat-item:hover, .chat-item.active {
             background: rgba(138, 43, 226, 0.15);
             color: #ffffff;
-            border-left: 3px solid #8a2be2;
+            border-left: 3px solid var(--accent-primary);
         }
 
         #sidebar-overlay {
@@ -316,7 +334,7 @@
             margin-bottom: 30px;
             text-align: center;
             color: rgba(255, 255, 255, 0.9);
-            min-height: 40px; /* FIX: Prevents text from jumping on load */
+            min-height: 40px; 
             display: flex;
             align-items: center;
             justify-content: center;
@@ -337,11 +355,11 @@
 
         .suggestion-chip {
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--glass-border);
             padding: 15px;
             border-radius: 15px;
             font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -367,7 +385,7 @@
            ========================================================================== */
         #messages-container {
             flex-grow: 1 !important;
-            padding: 20px 10px 50vh 10px; /* Massive padding bottom for perfect Gemini scroll! */
+            padding: 20px 10px 50vh 10px; 
             display: flex;
             flex-direction: column;
             gap: 24px;
@@ -498,9 +516,6 @@
             color: #ffffff;
             background: rgba(255,255,255,0.1);
         }
-        .action-icon span {
-            font-size: 18px;
-        }
 
         /* Beautiful Mac-Style Code Blocks & Syntax Highlighting */
         .code-block-wrapper {
@@ -566,7 +581,7 @@
         }
 
         /* ==========================================================================
-           6. FLAGSHIP CAPSULE INPUT AREA 
+           6. FLAGSHIP CAPSULE INPUT AREA (REDESIGNED FOR NO CUT-OFF)
            ========================================================================== */
         .input-area-container {
             background: transparent;
@@ -586,9 +601,9 @@
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(18, 18, 24, 0.85); 
+            background: var(--glass-bg); 
             border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.08); 
+            border: 1px solid var(--glass-border); 
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
@@ -613,7 +628,7 @@
         .input-box {
             flex: 1;
             display: flex;
-            align-items: center;
+            align-items: flex-end; /* Fixes multiline vertical clipping */
             min-height: 40px;
             position: relative;
         }
@@ -623,16 +638,28 @@
             background: transparent;
             border: none;
             color: #f0f0f0; 
-            padding: 10px 4px; 
+            padding: 10px 4px 10px 4px; /* Perfect breathing room */
             font-size: 1.05rem;
             resize: none;
-            max-height: 120px;
+            max-height: 140px; /* Allows generous growth before scrolling */
+            overflow-y: auto; /* Magic fix for text clipping! */
             outline: none;
             font-family: inherit;
-            line-height: 1.5; 
+            line-height: 1.4; 
             overscroll-behavior-y: contain;
             -webkit-user-select: auto !important;
             user-select: auto !important;
+            transition: height 0.1s ease;
+        }
+
+        /* Beautiful inner scrollbar for long essays in the textarea */
+        #chat-input::-webkit-scrollbar {
+            width: 4px;
+            display: block; 
+        }
+        #chat-input::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
         }
 
         #chat-input::placeholder { color: rgba(255, 255, 255, 0.4); }
@@ -640,21 +667,21 @@
         #clear-text-btn {
             background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 50%;
             width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-            position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+            position: absolute; right: 4px; top: 10px; /* Anchor to top right of input box */
             cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s;
         }
         #clear-text-btn.show { opacity: 1; pointer-events: auto; }
         #clear-text-btn .svg-icon { width: 14px; height: 14px; }
 
         #char-counter {
-            position: absolute; bottom: -18px; right: 30px; font-size: 0.65rem;
+            position: absolute; bottom: -20px; right: 20px; font-size: 0.65rem;
             color: rgba(255,255,255,0.3); pointer-events: none; opacity: 0; transition: opacity 0.2s, color 0.2s;
         }
         #char-counter.show { opacity: 1; }
         #char-counter.warning { color: #ff4500; font-weight: bold; }
 
         .plus-btn {
-            background: rgba(255, 255, 255, 0.05); border-radius: 50%; color: #8a2be2;
+            background: rgba(255, 255, 255, 0.05); border-radius: 50%; color: var(--accent-primary);
             cursor: pointer; height: 38px; width: 38px; display: flex; align-items: center; justify-content: center;
             align-self: flex-end; margin-bottom: 3px; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
             border: none;
@@ -940,19 +967,27 @@
             
             <div class="suggestions-grid no-select">
                 <div class="suggestion-chip" onclick="window.fillInput('Draft a polite email to my team about a project delay.')">
-                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;"><script>document.write(window.SVGS.edit_document);</script></div>
+                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;">
+                        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 14H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                    </div>
                     Draft a professional email
                 </div>
                 <div class="suggestion-chip" onclick="window.fillInput('Write a short, poetic verse about the ocean.')">
-                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;"><script>document.write(window.SVGS.auto_awesome);</script></div>
+                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;">
+                        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 4l-1.41 3.59L14 9l3.59 1.41L19 14l1.41-3.59L24 9l-3.59-1.41zM9.5 13L6 4l-3.5 9L-6 16.5l8.5 3.5L6 29l3.5-9L18 16.5z"/></svg>
+                    </div>
                     Write a creative poem
                 </div>
                 <div class="suggestion-chip" onclick="window.fillInput('Explain Quantum Computing to a 5 year old.')">
-                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;"><script>document.write(window.SVGS.school);</script></div>
+                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;">
+                        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+                    </div>
                     Explain a complex topic
                 </div>
                 <div class="suggestion-chip" onclick="window.fillInput('Help me brainstorm names for a new tech startup.')">
-                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;"><script>document.write(window.SVGS.lightbulb);</script></div>
+                    <div style="color: #ff4500; font-size: 1.2rem; margin-bottom: 4px;">
+                        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-1.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/></svg>
+                    </div>
                     Brainstorm ideas
                 </div>
             </div>
@@ -1089,7 +1124,7 @@
         let messagesUnsubscribe = null; 
         let selectedImageBase64 = null;
         let selectedChatIdForModal = null; 
-        let cachedChatExportText = ""; 
+        let cachedChatExportText = ""; // For exporting
 
         // Smart typing logic states
         window.isThinking = false;
@@ -1100,16 +1135,10 @@
         window.activeActionsEl = null; 
         window.justSentPrompt = false; // NEW: Ensures perfect prompt scrolling
 
-        // 0ms Apply Cached Logo & Profile Pic
+        // 0ms Apply Cached Logo Immediately
         const cachedLogo = localStorage.getItem('quan_logo_base64');
         if(cachedLogo) {
             document.getElementById('welcome-logo').src = cachedLogo;
-        }
-
-        const instantProfilePic = localStorage.getItem('quan_user_photo_b64');
-        if(instantProfilePic) {
-            headerProfilePic.src = instantProfilePic;
-            headerProfilePic.style.display = 'block';
         }
 
         /* ==========================================================================
@@ -1154,6 +1183,7 @@
             history.pushState({ imageModalOpen: true }, "");
         };
 
+        // Pinch to zoom logic for fullscreen image
         let scale = 1;
         fullscreenImg.addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -1178,11 +1208,13 @@
             if (hour < 12) greet = 'Good morning';
             else if (hour < 18) greet = 'Good afternoon';
             
+            // Auto capitalize name
             let formattedName = name ? name.split(' ')[0] : '';
             if(formattedName) formattedName = formattedName.charAt(0).toUpperCase() + formattedName.slice(1).toLowerCase();
             
             welcomeGreeting.innerHTML = formattedName ? `${greet}, <span class="highlight">${formattedName}</span>.` : `${greet}.`;
             
+            // Update placeholder dynamically too
             chatInput.placeholder = `Ask Quan anything this ${greet.split(' ')[1]}...`;
         };
 
@@ -1192,6 +1224,7 @@
         window.formatMarkdown = function(text) {
             if(!text) return "";
             
+            // Simple syntax highlighting regex
             const highlightJS = (code) => {
                 return code
                     .replace(/(const|let|var|function|return|if|else|for|while|import|from|class|await|async)/g, '<span class="syntax-keyword">$1</span>')
@@ -1222,10 +1255,12 @@
             return html;
         };
 
+        // 12hr Time formatter
         function format12HourTime(dateObj) {
             return dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
         }
 
+        // Time formatter for sidebar
         function timeAgo(millis) {
             const seconds = Math.floor((Date.now() - millis) / 1000);
             if (seconds < 60) return "Just now";
@@ -1261,7 +1296,7 @@
                 scrollBottomBtn.classList.add('visible');
             } else {
                 scrollBottomBtn.classList.remove('visible');
-                scrollBottomBtn.classList.remove('unread'); 
+                scrollBottomBtn.classList.remove('unread'); // clear badge when at bottom
             }
         });
 
@@ -1271,11 +1306,12 @@
             window.vibrateLight();
         });
 
+        // Swipe down to dismiss keyboard
         let touchStartY = 0;
         chatFlow.addEventListener('touchstart', e => touchStartY = e.touches[0].clientY, {passive: true});
         chatFlow.addEventListener('touchmove', e => {
             if(e.touches[0].clientY > touchStartY + 50) {
-                document.activeElement.blur(); 
+                document.activeElement.blur(); // dismiss keyboard
             }
         }, {passive: true});
 
@@ -1308,7 +1344,7 @@
                 chatInput.style.display = 'block';
                 voiceVisualizer.classList.remove('active');
                 micBtn.style.color = '#8a2be2';
-                chatInput.dispatchEvent(new Event('input')); 
+                chatInput.dispatchEvent(new Event('input')); // Triggers expansion & send btn
                 updateSendBtnState();
             };
             
@@ -1342,6 +1378,12 @@
             if (user) {
                 currentUser = user;
                 
+                // Fetch & Cache DP for 0ms load
+                const cachedProfilePic = localStorage.getItem('quan_user_photo_b64');
+                if(cachedProfilePic) {
+                    headerProfilePic.src = cachedProfilePic;
+                    headerProfilePic.style.display = 'block';
+                }
                 if(user.photoURL) {
                     cacheImageToBase64(user.photoURL, 'quan_user_photo_b64').then(() => {
                         headerProfilePic.src = localStorage.getItem('quan_user_photo_b64') || user.photoURL;
@@ -1361,7 +1403,6 @@
                         return;
                     } else {
                         localStorage.setItem('quan_has_profile', 'true');
-                        localStorage.setItem('quan_user_photo', user.photoURL || '');
                         localStorage.setItem('quan_user_name', userSnap.data().name || '');
                         updateGreeting(userSnap.data().name);
                     }
@@ -1380,6 +1421,7 @@
         function updateSendBtnState() {
             const val = chatInput.value;
             
+            // Clear button & Counter logic
             if(val.length > 0) {
                 clearTextBtn.classList.add('show');
                 charCounter.classList.add('show');
@@ -1488,6 +1530,7 @@
             imageUpload.click();
         });
 
+        // NEW: Drag and Drop support
         chatInput.addEventListener('dragover', (e) => { e.preventDefault(); inputCapsule.style.borderColor = '#ff4500'; });
         chatInput.addEventListener('dragleave', () => inputCapsule.style.borderColor = '');
         chatInput.addEventListener('drop', (e) => {
@@ -1496,6 +1539,7 @@
             if(e.dataTransfer.files.length > 0) handleImageSelection(e.dataTransfer.files[0]);
         });
         
+        // NEW: Paste Image Support
         chatInput.addEventListener('paste', (e) => {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (let index in items) {
@@ -1512,7 +1556,7 @@
         });
 
         function handleImageSelection(file) {
-            if (file.size > 10 * 1024 * 1024) { 
+            if (file.size > 10 * 1024 * 1024) { // Prevent >10MB crash
                 window.showToast("Image too large. Max 10MB.", "error");
                 return;
             }
@@ -1610,10 +1654,11 @@
             }
         });
 
+        // Swipe sidebar overlay to close
         let sbTouchStartX = 0;
         sidebarOverlay.addEventListener('touchstart', e => sbTouchStartX = e.touches[0].clientX, {passive: true});
         sidebarOverlay.addEventListener('touchend', e => {
-            if(sbTouchStartX > e.changedTouches[0].clientX + 40) toggleSidebar(); 
+            if(sbTouchStartX > e.changedTouches[0].clientX + 40) toggleSidebar(); // Swiped left
         });
 
         const toggleSidebar = () => {
@@ -1650,7 +1695,7 @@
             
             if (localStorage.getItem('quan_welcome_html_v2')) {
                 welcomeScreen.innerHTML = localStorage.getItem('quan_welcome_html_v2');
-                updateGreeting(localStorage.getItem('quan_user_name')); 
+                updateGreeting(localStorage.getItem('quan_user_name')); // ensure dynamic time on fresh hit
             }
             welcomeScreen.classList.remove('hidden');
             
@@ -1672,9 +1717,10 @@
             toggleSidebar();
             
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-            chatInput.focus(); 
+            chatInput.focus(); // Auto focus on new chat
         });
 
+        // Database actions for modal buttons (Delete, Pin, Export)
         deleteChatBtn.addEventListener('click', async () => {
             if(!selectedChatIdForModal || !currentUser) return;
             const confirmDelete = true; 
@@ -1739,11 +1785,13 @@
 
             window.vibrateMedium();
             
+            // Auto Retry Engine Backup
             let backupText = text;
             let backupImage = selectedImageBase64;
             
             if(!navigator.onLine) {
                 window.showToast('Offline: Message saved. Will send when reconnected.', 'error');
+                // Could implement queue here, for now just hold it.
                 return;
             }
 
@@ -1843,6 +1891,7 @@
             handleSend();
         });
 
+        // Esc key to stop generation
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && window.isGenerating) {
                 sendBtn.click();
@@ -1856,6 +1905,7 @@
             }
         });
 
+        // Bubble Double-Click to Copy
         document.addEventListener('dblclick', (e) => {
             const bubble = e.target.closest('.bubble');
             if(bubble && !bubble.querySelector('.typing-cursor')) {
@@ -1877,7 +1927,7 @@
 
             messagesUnsubscribe = onSnapshot(q, (snapshot) => {
                 messagesContainer.innerHTML = ''; 
-                cachedChatExportText = ""; 
+                cachedChatExportText = ""; // Reset export text
                 
                 let messagesList = [];
                 snapshot.forEach((doc) => {
@@ -1903,6 +1953,7 @@
                 let lastUserMessageEl = null; 
 
                 messagesList.forEach((data, index) => {
+                    // Build export text
                     if(data.text) {
                         cachedChatExportText += `[${data.role.toUpperCase()}]:\n${data.text}\n\n`;
                     }
@@ -1920,6 +1971,7 @@
                     const bubble = document.createElement('div');
                     bubble.className = `bubble ${data.role}`;
                     
+                    // Double Tap Heart Animation
                     let lastTap = 0;
                     bubble.addEventListener('touchstart', (e) => {
                         const currentTime = new Date().getTime();
@@ -1928,8 +1980,8 @@
                             e.preventDefault();
                             window.vibrateSuccess();
                             const heart = document.createElement('div');
-                            heart.className = 'floating-heart';
-                            heart.innerHTML = window.SVGS.keep; // pop heart icon
+                            heart.className = 'floating-heart material-symbols-rounded';
+                            heart.innerText = 'favorite';
                             bubble.appendChild(heart);
                             setTimeout(() => heart.remove(), 800);
                         }
@@ -1940,7 +1992,7 @@
                         const img = document.createElement('img');
                         img.src = data.imageUrl;
                         img.className = 'message-image';
-                        img.loading = "lazy"; 
+                        img.loading = "lazy"; // Lazy load images
                         img.onclick = () => window.openFullscreenImage(data.imageUrl); 
                         bubble.appendChild(img);
                     }
@@ -1969,7 +2021,7 @@
                             shareBtn.className = 'action-icon';
                             shareBtn.innerHTML = window.SVGS.share;
                             shareBtn.onclick = () => {
-                                if (navigator.share) navigator.share({ text: data.text }).catch(e=>{});
+                                if (navigator.share) navigator.share({ text: data.text }).catch(e=>console.log(e));
                                 else {
                                     navigator.clipboard.writeText(data.text);
                                     window.showToast('Copied to clipboard');
@@ -1994,7 +2046,7 @@
                                 if (!window.typedMessages.has(data.docId)) {
                                     window.typedMessages.add(data.docId);
                                     textSpan.classList.add('typing-cursor');
-                                    textSpan.dataset.fullText = data.text; 
+                                    textSpan.dataset.fullText = data.text; // Store for stop feature
                                     textSpan.innerHTML = '';
                                     
                                     actionsContainer.classList.add('hidden');
@@ -2005,33 +2057,34 @@
                                     window.isGenerating = true; 
                                     updateSendBtnState();
                                     
+                                    // Intelligent Scroll Override Check
                                     let userManuallyScrolled = false;
                                     chatFlow.addEventListener('scroll', () => {
                                         if(window.isGenerating) {
                                             const isScrolledUp = chatFlow.scrollHeight - chatFlow.scrollTop - chatFlow.clientHeight > 50;
                                             userManuallyScrolled = isScrolledUp;
+                                            if(userManuallyScrolled) scrollBottomBtn.classList.add('unread');
                                         }
                                     }, {passive: true});
 
                                     window.activeTypeWriter = setInterval(() => {
                                         if (i < data.text.length) {
+                                            // Humanized pacing
                                             const char = data.text.charAt(i);
                                             let step = 2;
-                                            if(char === '.' || char === ',') step = 1; 
+                                            if(char === '.' || char === ',') step = 1; // pause slightly on punctuation
 
-                                            if (i % 8 === 0) window.vibrateLight(); // Haptic Typing
+                                            // NEW: Lightweight typing vibration
+                                            if (i % 8 === 0) window.vibrateLight();
 
                                             i += step; 
                                             if(i > data.text.length) i = data.text.length;
                                             textSpan.innerHTML = window.formatMarkdown(data.text.substring(0, i));
                                             
-                                            // Show arrow unread dot if scrolled away while typing
-                                            const isScrolledUpNow = chatFlow.scrollHeight - chatFlow.scrollTop - chatFlow.clientHeight > 50;
-                                            if(isScrolledUpNow) {
-                                                scrollBottomBtn.classList.add('visible');
-                                                scrollBottomBtn.classList.add('unread');
+                                            // Only scroll if user hasn't scrolled up
+                                            if(!userManuallyScrolled && i % 4 === 0) {
+                                                 chatFlow.scrollTo({ top: chatFlow.scrollHeight });
                                             }
-
                                         } else {
                                             clearInterval(window.activeTypeWriter);
                                             window.activeTypeWriter = null;
@@ -2047,7 +2100,7 @@
                                             
                                             localStorage.setItem('chat_html_' + chatId, messagesContainer.innerHTML);
                                         }
-                                    }, 10); 
+                                    }, 15); 
                                 } else {
                                     textSpan.innerHTML = window.formatMarkdown(data.text); 
                                 }
@@ -2059,11 +2112,12 @@
                         }
                     }
 
+                    // Message Timestamps
                     if(data.timestamp) {
                         const timeEl = document.createElement('div');
                         timeEl.className = 'msg-timestamp';
                         const date = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-                        timeEl.innerText = format12HourTime(date); 
+                        timeEl.innerText = format12HourTime(date); // Format to 12hr device time
                         wrapper.appendChild(timeEl);
                     }
                     
@@ -2089,7 +2143,7 @@
                     localStorage.setItem('chat_html_' + chatId, messagesContainer.innerHTML);
                 }
 
-                // PERFECT SCROLLING FIX
+                // NEW: FIX HISTORY SCROLLING! Finds the last user message and perfectly snaps it to the top
                 setTimeout(() => {
                     if (initialLoad) {
                         if (lastUserMessageEl) {
@@ -2111,7 +2165,7 @@
                         }
                         window.justSentPrompt = false; 
                     }
-                }, 150); 
+                }, 50); // slight delay to allow DOM to calculate heights
             });
         }
 
@@ -2149,6 +2203,7 @@
                     const title = data.title || "New Chat";
                     const isPinned = data.pinned || false;
                     
+                    // Sidebar Timestamps
                     let timeString = "";
                     if(data.updatedAt) {
                         const millis = data.updatedAt.toMillis ? data.updatedAt.toMillis() : data.updatedAt;
@@ -2162,6 +2217,7 @@
                         chatEl.classList.add('active');
                     }
                     
+                    // NEW: Subtitle logic to show preview of what was said
                     chatEl.innerHTML = `
                         <div style="width:100%;">
                             <div class="chat-item-title">
@@ -2208,9 +2264,11 @@
                         
                         window.isInitialChatLoad = true; 
 
+                        // INSTANT CACHE LOAD: Renders the chat instantly before Firebase even connects!
                         const cachedHtml = localStorage.getItem('chat_html_' + chatId);
                         if (cachedHtml) {
                             messagesContainer.innerHTML = cachedHtml;
+                            // Wait for images/layout to settle then snap to last user message
                             setTimeout(() => {
                                 const userRows = messagesContainer.querySelectorAll('.message-row.user');
                                 if(userRows.length > 0) {
@@ -2238,6 +2296,7 @@
     </script>
     
     <script>
+        // NEW: Advanced PWA Update Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('../sw.js').then(registration => {
@@ -2298,6 +2357,7 @@
         window.addEventListener('appinstalled', () => {
             installBanner.style.display = 'none';
             deferredPrompt = null;
+            console.log('[Quan AI] PWA was successfully installed');
         });
     </script>
 </body>
