@@ -32,8 +32,20 @@
             top: 0 !important;
             overscroll-behavior: none !important;
             touch-action: none;
-            display: flex !important;
-            flex-direction: column !important;
+            margin: 0;
+            padding: 0;
+        }
+
+        .app-container { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            height: 100dvh; 
+            width: 100%; 
+            position: fixed !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            overflow: hidden;
         }
 
         .no-select {
@@ -55,11 +67,12 @@
             top: 0 !important; 
             left: 0 !important; 
             right: 0 !important;
+            height: calc(60px + env(safe-area-inset-top));
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
-            padding-top: calc(env(safe-area-inset-top) + 15px);
+            padding: 0 20px;
+            padding-top: calc(env(safe-area-inset-top) + 6px);
             background: rgba(10, 12, 20, 0.85);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
@@ -216,7 +229,9 @@
             flex-direction: column !important;
             position: relative;
             overflow-y: auto !important;
+            overflow-x: hidden !important;
             -webkit-overflow-scrolling: touch !important;
+            overscroll-behavior-y: contain;
         }
 
         #welcome-screen {
@@ -340,42 +355,47 @@
         }
 
         /* ==========================================================================
-           6. FLAGSHIP CAPSULE INPUT AREA
+           6. FLAGSHIP CAPSULE INPUT AREA (EXACT FROM GROUPCHAT.HTML)
            ========================================================================== */
         .input-area-container {
             background: transparent;
+            border-top: 1px solid transparent;
             padding-bottom: env(safe-area-inset-bottom, 10px);
+            flex-shrink: 0;
             width: 100%;
             z-index: 1000;
             position: relative;
-            flex-shrink: 0;
+            margin-top: auto; /* Pushes it to the very bottom */
+            touch-action: pan-y !important;
         }
 
         .input-area {
-            margin: 12px 24px !important; /* Compressed small look by default */
-            padding: 4px 8px !important;
+            margin: 12px 24px; /* Compressed small look by default */
+            padding: 4px 8px;
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(30, 30, 36, 0.75) !important; /* Slightly transparent when idle */
-            border-radius: 40px !important;
-            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            backdrop-filter: blur(25px) !important;
-            -webkit-backdrop-filter: blur(25px) !important;
-            box-shadow: 0 -2px 15px rgba(138, 43, 226, 0.15), 0 8px 25px rgba(0,0,0,0.4) !important;
-            transform: scale(0.95) !important; /* Physically smaller */
-            transform-origin: bottom center !important;
-            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+            background: rgba(30, 30, 36, 0.75); /* Slightly transparent when idle */
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 -2px 15px rgba(138, 43, 226, 0.15), 0 8px 25px rgba(0,0,0,0.4);
+            transform: scale(0.96); /* Physically smaller */
+            transform-origin: bottom center;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
             touch-action: none !important;
+            position: relative;
         }
 
-        .input-area.focused {
-            margin: 8px 12px !important; /* Expand full width */
-            transform: scale(1) !important; /* Grow to full size */
-            border-radius: 26px !important;
-            background: rgba(25, 25, 35, 0.98) !important; /* Solid background on focus */
-            border-color: #8a2be2 !important;
-            box-shadow: 0 -2px 20px rgba(138, 43, 226, 0.3), 0 8px 25px rgba(138, 43, 226, 0.25) !important;
+        /* Expands beautifully when focused or when text is inside */
+        .input-area:focus-within, .input-area.focused {
+            margin: 8px 12px; /* Expand full width */
+            transform: scale(1); /* Grow to full size */
+            border-radius: 26px;
+            background: rgba(25, 25, 35, 0.98); /* Solid background on focus */
+            border-color: #8a2be2;
+            box-shadow: 0 -2px 20px rgba(138, 43, 226, 0.3), 0 8px 25px rgba(138, 43, 226, 0.25);
         }
 
         .input-box {
@@ -404,10 +424,10 @@
             color: rgba(255, 255, 255, 0.4);
         }
 
-        .action-btn {
+        .plus-btn {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 50%;
-            color: var(--accent, #8a2be2);
+            color: #8a2be2;
             cursor: pointer;
             height: 38px;
             width: 38px;
@@ -420,22 +440,61 @@
             border: none;
         }
 
-        .action-btn:hover {
+        .plus-btn:hover {
             background: rgba(255, 255, 255, 0.1);
             color: #ffffff;
         }
 
-        #send-btn {
-            display: none; /* Hide by default, show when active */
+        .send-btn {
             background: linear-gradient(135deg, #8a2be2, #ff4500);
-            color: white;
+            border: none;
+            border-radius: 50%;
+            min-width: 38px;
+            width: 38px;
+            height: 38px;
+            display: none; /* Hide by default, show when active */
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            align-self: flex-end;
+            margin-bottom: 3px;
             box-shadow: 0 4px 15px rgba(138, 43, 226, 0);
         }
         
-        #send-btn.active {
-            display: flex;
+        .send-btn.active {
+            cursor: pointer;
+            pointer-events: auto;
+            display: flex !important;
             box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
             transform: scale(1.05);
+        }
+
+        .mic-btn-wrapper {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 100;
+            align-self: flex-end;
+            margin-bottom: 3px;
+        }
+
+        .mic-btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: transparent;
+            color: #8a2be2;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            touch-action: none;
         }
 
         /* Image Preview Popup Container */
@@ -553,6 +612,8 @@
 </head>
 <body>
 
+<div class="app-container" id="main-app">
+
     <div id="install-banner" class="no-select">
         <div class="install-info">
             <img src="../images/icon.png" alt="Quan AI Icon" class="install-icon">
@@ -637,25 +698,27 @@
         <input type="file" id="image-upload" accept="image/*" style="display: none;">
         
         <div class="input-area" id="input-capsule">
-            <button class="action-btn" id="attach-btn" title="Attach Image">
+            <button class="plus-btn" id="attach-btn" title="Attach Image">
                 <span class="material-symbols-rounded">image</span>
-            </button>
-
-            <button class="action-btn" id="mic-toggle-btn" title="Voice Input">
-                <span class="material-symbols-rounded">mic</span>
             </button>
             
             <div class="input-box">
                 <textarea id="chat-input" placeholder="Ask Quan anything..." rows="1"></textarea>
             </div>
             
-            <button class="action-btn" id="send-btn" title="Send Message">
+            <button class="send-btn" id="send-btn" title="Send Message">
                 <span class="material-symbols-rounded">send</span>
             </button>
+
+            <div id="mic-btn-wrapper" class="mic-btn-wrapper">
+                <div id="mic-btn" class="mic-btn" title="Voice Input">
+                    <span class="material-symbols-rounded">mic</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script type="module">
+</div> <script type="module">
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
@@ -667,7 +730,8 @@
         const messagesContainer = document.getElementById('messages-container');
         const chatFlow = document.getElementById('chat-flow');
         const sendBtn = document.getElementById('send-btn');
-        const micBtn = document.getElementById('mic-toggle-btn');
+        const micBtnWrapper = document.getElementById('mic-btn-wrapper');
+        const attachBtn = document.getElementById('attach-btn');
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         const openSidebarBtn = document.getElementById('open-sidebar-btn');
@@ -676,7 +740,6 @@
         const welcomeGreeting = document.getElementById('welcome-greeting');
         const newChatBtn = document.getElementById('new-chat-btn');
 
-        const attachBtn = document.getElementById('attach-btn');
         const imageUpload = document.getElementById('image-upload');
         const imagePreviewContainer = document.getElementById('image-preview-container');
         const imagePreview = document.getElementById('image-preview');
@@ -725,11 +788,13 @@
         });
 
         /* ==========================================================================
-           VIEWPORT LOCK LOGIC (AGGRESSIVE ANTI-SCROLL)
+           VIEWPORT LOCK LOGIC (AGGRESSIVE ANTI-SCROLL FROM GROUPCHAT.HTML)
            ========================================================================== */
         function lockViewportAndHeader() {
             const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            document.body.style.height = vh + 'px';
+            const app = document.getElementById('main-app');
+            if(app) app.style.height = vh + 'px';
+            document.body.style.height = '100vh';
             window.scrollTo(0, 0);
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
@@ -750,7 +815,6 @@
         window.addEventListener('resize', lockViewportAndHeader);
         window.addEventListener('scroll', lockViewportAndHeader, { passive: true });
 
-        // AGGRESSIVE SCROLL LOCK INTERVAL: Prevents browser from jumping when keyboard opens
         setInterval(() => {
             if (document.activeElement === chatInput || window.scrollY > 0 || document.body.scrollTop > 0) {
                 window.scrollTo(0, 0);
@@ -787,8 +851,10 @@
                         imagePreview.src = selectedImageBase64;
                         imagePreviewContainer.style.display = 'block'; 
                         
+                        inputCapsule.classList.add('focused');
                         sendBtn.classList.add('active'); 
-                        micBtn.style.display = 'none';
+                        micBtnWrapper.style.display = 'none';
+                        attachBtn.style.display = 'none';
                     }
                     img.src = event.target.result;
                 };
@@ -802,27 +868,32 @@
             imagePreviewContainer.style.display = 'none';
             imageUpload.value = ''; 
             if (chatInput.value.trim().length === 0) {
+                inputCapsule.classList.remove('focused');
                 sendBtn.classList.remove('active');
-                micBtn.style.display = 'flex';
+                micBtnWrapper.style.display = 'flex';
+                attachBtn.style.display = 'flex';
             }
         });
 
         /* ==========================================================================
-           UI INTERACTIONS 
+           UI INTERACTIONS (CAPSULE EXPANSION)
            ========================================================================== */
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
             
             if (this.value.trim().length > 0 || selectedImageBase64) {
+                inputCapsule.classList.add('focused');
                 sendBtn.classList.add('active');
-                micBtn.style.display = 'none';
+                micBtnWrapper.style.display = 'none';
+                attachBtn.style.display = 'none';
             } else {
+                inputCapsule.classList.remove('focused');
                 sendBtn.classList.remove('active');
-                micBtn.style.display = 'flex';
+                micBtnWrapper.style.display = 'flex';
+                attachBtn.style.display = 'flex';
             }
             
-            // Auto scroll slightly when typing long messages
             chatFlow.scrollTo({ top: chatFlow.scrollHeight });
         });
 
@@ -831,7 +902,6 @@
             if (messagesContainer.children.length === 0) {
                 welcomeScreen.classList.add('hidden');
             }
-            // Trigger viewport lock immediately when keyboard rises
             setTimeout(lockViewportAndHeader, 10);
             setTimeout(lockViewportAndHeader, 50);
             setTimeout(lockViewportAndHeader, 300);
@@ -889,7 +959,8 @@
             chatInput.style.height = 'auto';
             inputCapsule.classList.remove('focused');
             sendBtn.classList.remove('active');
-            micBtn.style.display = 'flex';
+            micBtnWrapper.style.display = 'flex';
+            attachBtn.style.display = 'flex';
             
             selectedImageBase64 = null;
             imagePreviewContainer.style.display = 'none';
@@ -914,8 +985,10 @@
 
             chatInput.value = '';
             chatInput.style.height = 'auto';
+            inputCapsule.classList.remove('focused');
             sendBtn.classList.remove('active');
-            micBtn.style.display = 'flex';
+            micBtnWrapper.style.display = 'flex';
+            attachBtn.style.display = 'flex';
             welcomeScreen.classList.add('hidden'); 
             
             imagePreviewContainer.style.display = 'none';
@@ -990,7 +1063,6 @@
                 let messagesList = [];
                 snapshot.forEach((doc) => messagesList.push(doc.data()));
 
-                // Sort fallback for local writes lacking instant server timestamps
                 messagesList.sort((a, b) => {
                     const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Infinity;
                     const timeB = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp) : Infinity;
