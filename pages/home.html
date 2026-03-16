@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0a0c14">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Quan AI</title>
     <link rel="manifest" href="../manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
@@ -31,6 +34,7 @@
             left: 0 !important; 
             top: 0 !important;
             overscroll-behavior: none !important;
+            overscroll-behavior-y: none !important; /* NEW: Kills pull-to-refresh loading bar on Android/iOS */
             touch-action: none;
             margin: 0;
             padding: 0;
@@ -821,6 +825,7 @@
         // NEW: Smart typing logic states
         window.isThinking = false;
         window.typedMessages = new Set(); 
+        window.isInitialChatLoad = true; // NEW: Solves the old chat typing bug!
 
         /* ==========================================================================
            1. INITIALIZATION & SECURITY ROUTING
@@ -838,6 +843,17 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
+                
+                // NEW: FIX FOR PROFILE PICTURE NOT SHOWING. Hard pulls from auth!
+                if(user.photoURL) {
+                    headerProfilePic.src = user.photoURL;
+                    headerProfilePic.style.display = 'block';
+                    localStorage.setItem('quan_user_photo', user.photoURL);
+                } else {
+                    // Fallback to icon if user didn't upload a profile picture
+                    headerProfilePic.src = '../images/icon.png';
+                    headerProfilePic.style.display = 'block';
+                }
                 
                 const hasProfileLocally = localStorage.getItem('quan_has_profile') === 'true';
                 if (!hasProfileLocally) {
@@ -1068,6 +1084,7 @@
 
             window.isThinking = false;
             window.typedMessages.clear();
+            window.isInitialChatLoad = true; // NEW: Reset typing flag for new chat
 
             if (messagesUnsubscribe) messagesUnsubscribe(); 
             toggleSidebar();
@@ -1097,6 +1114,8 @@
             imagePreview.src = '';
             selectedImageBase64 = null;
             imageUpload.value = '';
+
+            window.isInitialChatLoad = false; // Turn off initial load flag so new incoming message gets typed!
 
             try {
                 if (!currentChatId) {
@@ -1163,7 +1182,18 @@
                 messagesContainer.innerHTML = ''; 
                 
                 let messagesList = [];
-                snapshot.forEach((doc) => messagesList.push({ ...doc.data(), docId: doc.id }));
+                snapshot.forEach((doc) => {
+                    const docData = doc.data();
+                    const docId = doc.id;
+                    messagesList.push({ ...docData, docId: docId });
+                    
+                    // NEW: If this is the first time opening an old chat, mark everything as 'already typed'
+                    if(window.isInitialChatLoad) {
+                        window.typedMessages.add(docId);
+                    }
+                });
+
+                window.isInitialChatLoad = false; // Turn off initial load flag after first snapshot
 
                 messagesList.sort((a, b) => {
                     const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Infinity;
@@ -1192,7 +1222,7 @@
                         
                         const isLastItem = (index === messagesList.length - 1);
                         
-                        // Smart Typer: Only type if it's the very last message, from AI, and hasn't been typed before
+                        // Smart Typer logic
                         if (data.role === 'ai' && isLastItem) {
                             isLastAi = true;
                             if (!window.typedMessages.has(data.docId)) {
@@ -1200,7 +1230,7 @@
                                 textSpan.classList.add('typing-cursor');
                                 textSpan.innerText = '';
                                 let i = 0;
-                                window.isThinking = false; // Turn off the thinking wheel when typing begins
+                                window.isThinking = false; 
                                 
                                 const typeWriter = setInterval(() => {
                                     if (i < data.text.length) {
@@ -1211,12 +1241,12 @@
                                         clearInterval(typeWriter);
                                         textSpan.classList.remove('typing-cursor');
                                     }
-                                }, 15); // Adjust this number for faster/slower typing
+                                }, 15); 
                             } else {
-                                textSpan.innerText = data.text; // Skip typing if we already typed it
+                                textSpan.innerText = data.text; 
                             }
                         } else {
-                            textSpan.innerText = data.text; // Skip typing for user messages or old AI messages
+                            textSpan.innerText = data.text; 
                         }
                     }
                     
@@ -1224,7 +1254,6 @@
                     messagesContainer.appendChild(row);
                 });
 
-                // Auto-toggle the "Thinking" wheel depending on who sent the last message
                 if (messagesList.length > 0 && messagesList[messagesList.length - 1].role === 'user') {
                     window.isThinking = true;
                 } else if (isLastAi) {
@@ -1274,6 +1303,7 @@
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         chatEl.classList.add('active');
                         
+                        window.isInitialChatLoad = true; // NEW: Tell the listener this is an old chat opening!
                         listenToChat(chatId);
                         
                         if (window.innerWidth <= 768) {
