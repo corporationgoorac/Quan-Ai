@@ -609,6 +609,78 @@
             box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4) !important;
             transform: scale(1.05) !important;
         }
+
+        /* ==========================================================================
+           10. FINAL FIXES: GroupChat.html Overrides (Scroll & Input)
+           ========================================================================== */
+           
+        /* Replicating the rock-solid structure from groupChat.html */
+        body {
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important; /* Absolute scroll lock at body level */
+        }
+
+        header {
+            /* Removing fixed positioning that fights with Flexbox layout */
+            position: relative !important; 
+            flex-shrink: 0 !important;
+            z-index: 100 !important;
+        }
+
+        main {
+            /* Taking up all remaining space between header and input */
+            flex-grow: 1 !important; 
+            position: relative !important;
+            height: auto !important; /* Overriding previous calc */
+            padding-top: 0 !important; 
+            padding-bottom: 0 !important;
+            /* Container internal flexbox for messages */
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important; /* Hide overflow here, let messages-container scroll */
+        }
+
+        #messages-container {
+            /* This is where the actual scrolling happens, matching groupChat.html */
+            flex-grow: 1 !important;
+            overflow-y: auto !important;
+            padding-bottom: 100px !important; /* Space for the input wrapper so last message isn't hidden */
+        }
+
+        /* Input Container styling matching the absolute positioning in groupChat.html */
+        #input-wrapper {
+            position: absolute !important;
+            bottom: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 95% !important;
+            max-width: 800px !important;
+            z-index: 50 !important;
+            
+            /* Enhanced Capsule Aesthetics */
+            background-color: #1a1a1a !important;
+            border-radius: 30px !important;
+            padding: 8px 12px !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+            align-items: center !important;
+            border: 1px solid #333 !important;
+        }
+        
+        #input-wrapper.focused {
+             /* Maintain center position while focused */
+             transform: translateX(-50%) !important;
+             border-color: #8a2be2 !important;
+             box-shadow: 0 0 15px rgba(138, 43, 226, 0.4) !important;
+        }
+
+        .input-actions {
+            padding-bottom: 0 !important; /* Reset padding to align properly in new flex */
+        }
+        
+        #welcome-screen {
+            z-index: 5 !important; /* Keep it below header and input */
+        }
     </style>
 </head>
 <body>
@@ -1061,8 +1133,8 @@
             const body = document.body;
             
             viewport.addEventListener('resize', () => {
-                body.style.height = viewport.height + 'px';
-                window.scrollTo(0, 0); // Force scroll position to stay rigidly locked at the top
+                // Remove the manual setting of body height and scroll lock as it conflicts with flex layout
+                // The flexbox overrides above handle the sizing naturally.
             });
         }
     </script>
