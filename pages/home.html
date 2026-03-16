@@ -326,7 +326,6 @@
             border-bottom-left-radius: 4px;
         }
 
-        /* ADDED: Styling for images inside chat bubbles */
         .message-image {
             max-width: 100%;
             border-radius: 10px;
@@ -362,7 +361,6 @@
             box-shadow: 0 0 25px rgba(138, 43, 226, 0.25), 0 0 10px rgba(255, 69, 0, 0.1);
         }
 
-        /* ADDED: Image Preview Popup Container */
         #image-preview-container {
             display: none; 
             position: absolute; 
@@ -533,7 +531,7 @@
         }
 
         /* ==========================================================================
-           8. ADDED: Viewport Lock & Professional Capsule Overrides
+           8. Viewport Lock & Professional Capsule Overrides
            ========================================================================== */
         body {
             position: fixed !important;
@@ -562,7 +560,7 @@
         }
 
         /* ==========================================================================
-           9. FINAL POLISH: Perfect Viewport Lock & Flagship Capsule Makeover
+           9. FINAL POLISH
            ========================================================================== */
         html, body {
             top: 0 !important;
@@ -621,7 +619,7 @@
         }
 
         /* ==========================================================================
-           10. FINAL FIXES: GroupChat.html Overrides (Scroll & Input)
+           10. GroupChat.html Overrides
            ========================================================================== */
         body {
             display: flex !important;
@@ -784,9 +782,10 @@
     </div>
 
     <script type="module">
+        // NEW: Imported serverTimestamp to fix the UI sorting bug completely!
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // DOM Elements
         const chatInput = document.getElementById('chat-input');
@@ -802,7 +801,6 @@
         const welcomeGreeting = document.getElementById('welcome-greeting');
         const newChatBtn = document.getElementById('new-chat-btn');
 
-        // ADDED: DOM Elements for Image Upload
         const attachBtn = document.getElementById('attach-btn');
         const imageUpload = document.getElementById('image-upload');
         const imagePreviewContainer = document.getElementById('image-preview-container');
@@ -810,16 +808,13 @@
         const removeImageBtn = document.getElementById('remove-image-btn');
 
         let currentUser = null;
-        let currentChatId = null; // null means we are in a "New Chat" state
-        let messagesUnsubscribe = null; // For cleaning up listeners
-        
-        // ADDED: State variable to hold the Base64 image
+        let currentChatId = null; 
+        let messagesUnsubscribe = null; 
         let selectedImageBase64 = null;
 
         /* ==========================================================================
            1. INITIALIZATION & SECURITY ROUTING
            ========================================================================== */
-        // Instantly load locally cached profile picture and name for 0ms visual delay
         const cachedPhoto = localStorage.getItem('quan_user_photo');
         const cachedName = localStorage.getItem('quan_user_name');
         if (cachedPhoto) {
@@ -834,78 +829,80 @@
             if (user) {
                 currentUser = user;
                 
-                // Security Check: Verify they actually completed the setup profile
                 const hasProfileLocally = localStorage.getItem('quan_has_profile') === 'true';
                 if (!hasProfileLocally) {
-                    // Double check with database to be sure
                     const userRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userRef);
                     if (!userSnap.exists()) {
-                        console.log("[Quan AI] No profile data found. Redirecting to setup...");
                         window.location.replace("setup.html");
                         return;
                     } else {
-                        // Data exists in DB but not local (cleared cache), resync it
                         localStorage.setItem('quan_has_profile', 'true');
                         localStorage.setItem('quan_user_photo', user.photoURL || '');
                     }
                 }
                 
-                // User is fully verified. Load Sidebar history.
                 loadSidebarHistory();
 
             } else {
-                console.log("[Quan AI] Session expired. Redirecting to login...");
                 window.location.replace("login.html");
             }
         });
 
         /* ==========================================================================
-           ADDED: IMAGE SELECTION LOGIC
+           ADDED: IMAGE COMPRESSION LOGIC (Prevents Firebase 1MB crash)
            ========================================================================== */
-        
-        // Trigger file input when clip icon is clicked
         attachBtn.addEventListener('click', () => {
             imageUpload.click();
         });
 
-        // Convert the image to Base64 when selected
         imageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    selectedImageBase64 = event.target.result; // Grab the Base64 string
-                    imagePreview.src = selectedImageBase64;
-                    imagePreviewContainer.style.display = 'block'; // Show popup
-                    sendBtn.classList.add('active'); // Allow sending even if text is empty
+                    // Compress the image before saving so it doesn't crash Firestore
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800; // Perfect size for Groq AI
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        // Convert back to a tiny Base64 string
+                        selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.7); 
+                        
+                        imagePreview.src = selectedImageBase64;
+                        imagePreviewContainer.style.display = 'block'; 
+                        sendBtn.classList.add('active'); 
+                    }
+                    img.src = event.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // Cancel the image
         removeImageBtn.addEventListener('click', () => {
             selectedImageBase64 = null;
             imagePreview.src = '';
             imagePreviewContainer.style.display = 'none';
-            imageUpload.value = ''; // Reset file input
-            // Check if we should disable the send button
+            imageUpload.value = ''; 
             if (chatInput.value.trim().length === 0) {
                 sendBtn.classList.remove('active');
             }
         });
 
         /* ==========================================================================
-           2. UI INTERACTIONS (Capsule Glow & Welcome Screen Hide)
+           2. UI INTERACTIONS 
            ========================================================================== */
-        
-        // Auto-resize textarea logic
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
             
-            // Highlight send button if there is text OR an image selected (UPDATED LINE)
             if (this.value.trim().length > 0 || selectedImageBase64) {
                 sendBtn.classList.add('active');
             } else {
@@ -913,49 +910,39 @@
             }
         });
 
-        // Expand and Glow Capsule on Focus
         chatInput.addEventListener('focus', () => {
             inputWrapper.classList.add('focused');
-            // Hide welcome screen smoothly to transition to chat mode
             if (messagesContainer.children.length === 0) {
                 welcomeScreen.classList.add('hidden');
             }
         });
 
-        // Shrink Capsule if empty and blurred
         chatInput.addEventListener('blur', () => {
-            // UPDATED: Check for selected image too
             if (chatInput.value.trim() === '' && !selectedImageBase64) {
                 inputWrapper.classList.remove('focused');
-                // Bring back welcome screen if no messages exist
                 if (messagesContainer.children.length === 0) {
                     welcomeScreen.classList.remove('hidden');
-                    chatInput.style.height = 'auto'; // Reset height
+                    chatInput.style.height = 'auto'; 
                 }
             }
         });
 
-        // Allow suggestion chips to fill the input and focus it
         window.fillInput = (text) => {
             chatInput.value = text;
             chatInput.focus();
-            // Trigger the input event to resize the box and highlight the button
             chatInput.dispatchEvent(new Event('input'));
         };
 
         /* ==========================================================================
-           3. SIDEBAR NAVIGATION & MOBILE BACK BUTTON LOGIC
+           3. SIDEBAR NAVIGATION 
            ========================================================================== */
         const toggleSidebar = () => {
             sidebar.classList.toggle('open');
             sidebarOverlay.classList.toggle('show');
             
-            // --- NEW: History API Logic for Mobile Back Button ---
-            // If we just opened the sidebar, push a new state to the browser history
             if (sidebar.classList.contains('open')) {
                 history.pushState({ sidebarOpen: true }, "");
             } else {
-                // If we manually closed it (via button), remove that history state
                 if (history.state && history.state.sidebarOpen) {
                     history.back(); 
                 }
@@ -966,16 +953,13 @@
         closeSidebarBtn.addEventListener('click', toggleSidebar);
         sidebarOverlay.addEventListener('click', toggleSidebar);
 
-        // --- NEW: Intercept the Android Hardware Back Button ---
         window.addEventListener('popstate', (e) => {
-            // If the user presses the phone's back button and the sidebar is open, close it!
             if (sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
                 sidebarOverlay.classList.remove('show');
             }
         });
 
-        // Reset to new chat
         newChatBtn.addEventListener('click', () => {
             currentChatId = null;
             messagesContainer.innerHTML = '';
@@ -985,124 +969,73 @@
             inputWrapper.classList.remove('focused');
             sendBtn.classList.remove('active');
             
-            // Reset image picker
             selectedImageBase64 = null;
             imagePreviewContainer.style.display = 'none';
             imagePreview.src = '';
             imageUpload.value = '';
 
-            if (messagesUnsubscribe) messagesUnsubscribe(); // Stop listening to old chat
+            if (messagesUnsubscribe) messagesUnsubscribe(); 
             toggleSidebar();
             
-            // visually clear active state
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
         });
 
         /* ==========================================================================
-           4. CHAT LOGIC (Send & Receive) & REAL FIREBASE HISTORY FIX
+           4. CHAT LOGIC - FIXED SORTING & UI FLICKER
            ========================================================================== */
         
-        // Render a single message bubble (UPDATED to accept an image)
-        function appendMessage(text, role, imageUrl = null) {
-            const row = document.createElement('div');
-            row.className = `message-row ${role}`;
-            
-            const bubble = document.createElement('div');
-            bubble.className = `bubble ${role}`;
-            
-            // ADDED: Render the image inside the bubble if it exists
-            if (imageUrl) {
-                const imgEl = document.createElement('img');
-                imgEl.src = imageUrl;
-                imgEl.className = 'message-image';
-                bubble.appendChild(imgEl);
-            }
-            
-            // Render the text safely without overwriting the image
-            if (text) {
-                const textSpan = document.createElement('span');
-                textSpan.innerText = text;
-                bubble.appendChild(textSpan);
-            }
-
-            // ORIGINAL LINE COMMENTED OUT TO PRESERVE YOUR EXACT CODE (We use the span above instead so it doesn't break images)
-            // bubble.innerText = text; 
-            
-            row.appendChild(bubble);
-            messagesContainer.appendChild(row);
-            
-            // Auto scroll to bottom smoothly
-            messagesContainer.scrollTo({
-                top: messagesContainer.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-
         async function handleSend() {
             const text = chatInput.value.trim();
-            // UPDATED: Check for both text AND image before rejecting
             if ((!text && !selectedImageBase64) || !currentUser) return;
 
-            // Capture the image right now in case the user types fast and sends another
             const currentImage = selectedImageBase64; 
 
-            // 1. Immediately update UI
             chatInput.value = '';
             chatInput.style.height = 'auto';
             sendBtn.classList.remove('active');
-            welcomeScreen.classList.add('hidden'); // Ensure it's hidden
+            welcomeScreen.classList.add('hidden'); 
             
-            // Hide and clear the image preview popup
             imagePreviewContainer.style.display = 'none';
             imagePreview.src = '';
             selectedImageBase64 = null;
             imageUpload.value = '';
 
-            // Render it optimistically on screen!
-            appendMessage(text, 'user', currentImage);
+            // Note: Optimistic manual render removed here to prevent double bubbles!
+            // The onSnapshot listener below will draw it perfectly.
 
             try {
-                // 2. THIS WAS THE MISSING PIECE: Create the Parent Document!
                 if (!currentChatId) {
                     currentChatId = "chat_" + Date.now();
                     
-                    // Create the actual Chat Room Document for the sidebar to read
                     const chatDocRef = doc(db, `users/${currentUser.uid}/chats/${currentChatId}`);
-                    
-                    // Use the first 25 characters of their message as the Chat Title (or "Image Upload" if empty)
                     let chatTitle = text.length > 25 ? text.substring(0, 25) + '...' : text;
                     if (!chatTitle && currentImage) chatTitle = "Image Upload";
                     
-                    // FIX: Using Date.now() instead of serverTimestamp() for 0ms visual latency!
+                    // FIXED: Now using serverTimestamp so it matches the AI backend perfectly
                     await setDoc(chatDocRef, {
                         title: chatTitle,
-                        updatedAt: Date.now(),
-                        createdAt: Date.now()
+                        updatedAt: serverTimestamp(),
+                        createdAt: serverTimestamp()
                     });
 
-                    // Setup the listener for this new room immediately
                     listenToChat(currentChatId);
                 } else {
-                    // FIX: Using Date.now() here too
                     const chatDocRef = doc(db, `users/${currentUser.uid}/chats/${currentChatId}`);
-                    await setDoc(chatDocRef, { updatedAt: Date.now() }, { merge: true });
+                    await setDoc(chatDocRef, { updatedAt: serverTimestamp() }, { merge: true });
                 }
 
-                // 3. Send the flare gun (the message itself) to Firebase
                 const path = `users/${currentUser.uid}/chats/${currentChatId}/messages`;
                 const messagesRef = collection(db, path);
 
-                // FIX: Use Date.now() here as well to guarantee immediate rendering
-                // UPDATED: Construct payload to include image dynamically
+                // FIXED: Now using serverTimestamp so the chat never collapses again!
                 const messagePayload = {
                     text: text,
                     role: "user",
                     uid: currentUser.uid,
-                    timestamp: Date.now(),
-                    needs_ai_reply: true // Tells your Node Backend to wake up
+                    timestamp: serverTimestamp(), 
+                    needs_ai_reply: true 
                 };
 
-                // Add Base64 image to the database payload if one was attached
                 if (currentImage) {
                     messagePayload.imageUrl = currentImage;
                 }
@@ -1111,11 +1044,10 @@
 
             } catch (error) {
                 console.error("Error sending message:", error);
-                appendMessage("Error: Could not connect to Quan servers.", 'ai');
+                alert("Error: Message failed to send.");
             }
         }
 
-        // Send via button click or Enter key (preventing default new line on Enter)
         sendBtn.addEventListener('click', handleSend);
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -1125,27 +1057,34 @@
         });
 
         /* ==========================================================================
-           5. DATABASE LISTENERS (REAL SIDEBAR SYNC)
+           5. DATABASE LISTENERS - FIXED FOR LOCAL TIMESTAMP NULL VALUES
            ========================================================================== */
         
         function listenToChat(chatId) {
-            if (messagesUnsubscribe) messagesUnsubscribe(); // Clear previous listener
+            if (messagesUnsubscribe) messagesUnsubscribe(); 
 
             const path = `users/${currentUser.uid}/chats/${chatId}/messages`;
             const q = query(collection(db, path), orderBy("timestamp", "asc"));
 
             messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-                // For simplicity here, we clear and re-render.
                 messagesContainer.innerHTML = ''; 
                 
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
+                let messagesList = [];
+                snapshot.forEach((doc) => messagesList.push(doc.data()));
+
+                // Handle local writes temporarily having a 'null' timestamp by forcing them to the bottom
+                messagesList.sort((a, b) => {
+                    const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Infinity;
+                    const timeB = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp) : Infinity;
+                    return timeA - timeB;
+                });
+                
+                messagesList.forEach((data) => {
                     const row = document.createElement('div');
                     row.className = `message-row ${data.role}`;
                     const bubble = document.createElement('div');
                     bubble.className = `bubble ${data.role}`;
                     
-                    // ADDED IMAGE SUPPORT FOR REAL-TIME RENDERING
                     if (data.imageUrl) {
                         const img = document.createElement('img');
                         img.src = data.imageUrl;
@@ -1157,9 +1096,6 @@
                         textSpan.innerText = data.text;
                         bubble.appendChild(textSpan);
                     }
-
-                    // ORIGINAL LINE COMMENTED OUT TO PRESERVE YOUR EXACT CODE
-                    // bubble.innerText = data.text;
                     
                     row.appendChild(bubble);
                     messagesContainer.appendChild(row);
@@ -1173,13 +1109,12 @@
         }
 
         function loadSidebarHistory() {
-            // WE NOW QUERY THE REAL FIREBASE COLLECTION FOR CHATS!
             const chatsRef = collection(db, `users/${currentUser.uid}/chats`);
-            const q = query(chatsRef, orderBy("updatedAt", "desc")); // Newest chats at the top
+            const q = query(chatsRef, orderBy("updatedAt", "desc")); 
 
             onSnapshot(q, (snapshot) => {
                 const historyList = document.getElementById('chat-history-list');
-                historyList.innerHTML = ''; // Clear out the placeholder
+                historyList.innerHTML = ''; 
                 
                 if (snapshot.empty) {
                     historyList.innerHTML = `
@@ -1196,30 +1131,24 @@
                     const chatId = docSnap.id;
                     const title = data.title || "New Chat";
 
-                    // Create the clickable sidebar item
                     const chatEl = document.createElement('div');
                     chatEl.className = 'chat-item';
                     
-                    // Highlight if it's the chat we are currently looking at
                     if (chatId === currentChatId) {
                         chatEl.classList.add('active');
                     }
                     
                     chatEl.innerText = title;
 
-                    // Make it clickable to load the past chat
                     chatEl.onclick = () => {
                         currentChatId = chatId;
-                        welcomeScreen.classList.add('hidden'); // Hide the greeting
+                        welcomeScreen.classList.add('hidden'); 
                         
-                        // Visually switch active state
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         chatEl.classList.add('active');
                         
-                        // Load messages from firebase
                         listenToChat(chatId);
                         
-                        // Auto-close sidebar on mobile after selecting a chat
                         if (window.innerWidth <= 768) {
                             toggleSidebar();
                         }
@@ -1234,7 +1163,6 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Ensure the path correctly points to sw.js in your root folder
                 navigator.serviceWorker.register('../sw.js')
                     .then(registration => {
                         console.log('[Quan AI] Service Worker successfully registered:', registration.scope);
@@ -1252,56 +1180,36 @@
         const installBtn = document.getElementById('install-btn');
         const closeInstallBtn = document.getElementById('close-install-btn');
 
-        // Check if user already dismissed the prompt previously
         const isInstallDismissed = localStorage.getItem('quan_install_dismissed');
 
-        // Listen for the native browser install prompt event
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent the default mini-infobar from appearing
             e.preventDefault();
-            
-            // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            
-            // If they haven't dismissed it, slide our custom professional banner down
             if (!isInstallDismissed) {
                 setTimeout(() => {
                     installBanner.style.display = 'flex';
-                    // Trigger reflow to ensure the CSS transition animates smoothly
                     void installBanner.offsetWidth; 
                     installBanner.classList.add('visible');
-                }, 1000); // Wait 1 second after load so it feels natural
+                }, 1000); 
             }
         });
 
-        // Handle Install Button Click
         installBtn.addEventListener('click', async () => {
             if (!deferredPrompt) return;
-            
-            // Show the native browser install prompt
             deferredPrompt.prompt();
-            
-            // Wait for the user to respond to the native prompt
             const { outcome } = await deferredPrompt.userChoice;
             console.log(`[Quan AI] User response to install prompt: ${outcome}`);
-            
-            // Clear the deferredPrompt variable, it can only be used once
             deferredPrompt = null;
-            
-            // Hide our custom banner smoothly
             installBanner.classList.remove('visible');
             setTimeout(() => installBanner.style.display = 'none', 400);
         });
 
-        // Handle Close Button Click
         closeInstallBtn.addEventListener('click', () => {
             installBanner.classList.remove('visible');
             setTimeout(() => installBanner.style.display = 'none', 400);
-            // Save preference so we never bother them again on this device
             localStorage.setItem('quan_install_dismissed', 'true');
         });
 
-        // If the app is successfully installed outside of our button (e.g. from browser menu)
         window.addEventListener('appinstalled', () => {
             installBanner.style.display = 'none';
             deferredPrompt = null;
@@ -1310,16 +1218,10 @@
     </script>
 
     <script>
-        // This API listens to the actual visible screen space (excluding the keyboard)
-        // It shrinks the body exactly to fit the screen above the keyboard, forcing ONLY the input to move up.
         if (window.visualViewport) {
             const viewport = window.visualViewport;
             const body = document.body;
-            
-            viewport.addEventListener('resize', () => {
-                // Remove the manual setting of body height and scroll lock as it conflicts with flex layout
-                // The flexbox overrides above handle the sizing naturally.
-            });
+            viewport.addEventListener('resize', () => {});
         }
     </script>
 </body>
