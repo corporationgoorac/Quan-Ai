@@ -4,9 +4,10 @@
   "description": "Infinite Intelligence by Goorac Corporation",
   "start_url": "/pages/home.html",
   "display": "standalone",
-  "background_color": "#04050a",
+  "background_color": "#0a0c14",
   "theme_color": "#0a0c14",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
       "src": "/images/icon.png",
@@ -19,6 +20,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "short_name": "New",
+      "description": "Start a new conversation with Quan AI",
+      "url": "/pages/home.html",
+      "icons": [
+        {
+          "src": "/images/icon.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
