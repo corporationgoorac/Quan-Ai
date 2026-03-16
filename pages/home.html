@@ -2097,7 +2097,7 @@
                 }
 
                 // PERFECT SCROLLING FIX - UPGRADED FOR ZERO JUMP
-                const applyScrollLock = () => {
+                const applyScrollLock = (behaviorOverride) => {
                     if (initialLoad) {
                         if (lastUserMessageEl) {
                             const headerOffset = 70; 
@@ -2113,14 +2113,14 @@
                             const headerOffset = 70; 
                             chatFlow.scrollTo({
                                 top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
-                                behavior: 'smooth'
+                                behavior: behaviorOverride || 'smooth'
                             });
                         }
                     }
                 };
-                applyScrollLock(); // Instant lock
-                setTimeout(applyScrollLock, 50); // Catch layout shift
-                setTimeout(() => { applyScrollLock(); window.justSentPrompt = false; }, 150); // Final settle
+                applyScrollLock('auto'); // Instant lock, avoids conflicting animations
+                setTimeout(() => applyScrollLock('auto'), 50); // Catch layout shift instantly
+                setTimeout(() => { applyScrollLock('smooth'); window.justSentPrompt = false; }, 150); // Final settle smooth
             });
         }
 
