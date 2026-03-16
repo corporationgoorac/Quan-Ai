@@ -633,6 +633,7 @@
             overscroll-behavior-y: contain;
             -webkit-user-select: auto !important;
             user-select: auto !important;
+            transition: height 0.15s ease-out; /* Makes resizing textarea much smoother! */
         }
 
         #chat-input::placeholder { color: rgba(255, 255, 255, 0.4); }
@@ -1856,8 +1857,9 @@
 
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if(!window.isGenerating) handleSend(); 
+                // Disabled Enter to send per request. Now Enter just makes a new line.
+                // e.preventDefault();
+                // if(!window.isGenerating) handleSend(); 
             }
         });
 
@@ -2270,4 +2272,10 @@
         const installBtn = document.getElementById('install-btn');
         const closeInstallBtn = document.getElementById('close-install-btn');
 
-        const isInstallDismissed = localStorage.getItem('quan_
+        const isInstallDismissed = localStorage.getItem('quan_install_dismissed');
+        if (!isInstallDismissed) {
+            // Install prompt logic goes here
+        }
+    </script>
+</body>
+</html>
