@@ -21,6 +21,17 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* NEW: HIDE SCROLLBARS GLOBALLY FOR SLEEK UI */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+            display: none;
+        }
+        * {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
         /* PERFECT VIEWPORT LOCK FROM GROUPCHAT.HTML */
         html, body {
             height: 100vh !important; 
@@ -195,6 +206,8 @@
             overflow: hidden;
             text-overflow: ellipsis;
             transition: background 0.2s;
+            display: flex;
+            align-items: center;
         }
 
         .chat-item:hover, .chat-item.active {
@@ -678,6 +691,65 @@
         @keyframes pulse-logo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         @keyframes blink { 50% { opacity: 0; } }
 
+        /* ==========================================================================
+           9. NEW: BOTTOM MODAL FOR CHAT OPTIONS (PIN & DELETE)
+           ========================================================================== */
+        #bottom-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px);
+            z-index: 4500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #bottom-modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .bottom-modal {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #1a1a24;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 20px 20px 30px 20px;
+            z-index: 5000;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
+        }
+        .bottom-modal.show {
+            transform: translateY(0);
+        }
+        .modal-drag-handle {
+            width: 40px; height: 5px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            margin: 0 auto 10px auto;
+        }
+        .modal-option {
+            display: flex; align-items: center; gap: 15px;
+            background: rgba(255,255,255,0.05);
+            border: none; border-radius: 12px;
+            padding: 15px; color: #fff;
+            font-size: 1rem; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .modal-option:hover, .modal-option:active {
+            background: rgba(255,255,255,0.1);
+        }
+        .modal-option.delete {
+            color: #ff4500;
+        }
+        .modal-option.delete .material-symbols-rounded {
+            color: #ff4500;
+        }
+
     </style>
 </head>
 <body>
@@ -788,12 +860,24 @@
         </div>
     </div>
 
+    <div id="bottom-modal-overlay" class="no-select"></div>
+    <div id="chat-options-modal" class="bottom-modal no-select">
+        <div class="modal-drag-handle"></div>
+        <button class="modal-option" id="pin-chat-btn">
+            <span class="material-symbols-rounded">keep</span> <span id="pin-chat-text">Pin Chat</span>
+        </button>
+        <button class="modal-option delete" id="delete-chat-btn">
+            <span class="material-symbols-rounded">delete</span> Delete Chat
+        </button>
+    </div>
+
 </div> 
 
     <script type="module">
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        // NEW: Imported deleteDoc for the new modal functionality
+        import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // DOM Elements
         const chatInput = document.getElementById('chat-input');
@@ -817,10 +901,18 @@
         const imagePreview = document.getElementById('image-preview');
         const removeImageBtn = document.getElementById('remove-image-btn');
 
+        // NEW: Modal DOM Elements
+        const bottomModalOverlay = document.getElementById('bottom-modal-overlay');
+        const chatOptionsModal = document.getElementById('chat-options-modal');
+        const pinChatBtn = document.getElementById('pin-chat-btn');
+        const pinChatText = document.getElementById('pin-chat-text');
+        const deleteChatBtn = document.getElementById('delete-chat-btn');
+
         let currentUser = null;
         let currentChatId = null; 
         let messagesUnsubscribe = null; 
         let selectedImageBase64 = null;
+        let selectedChatIdForModal = null; // Tracks which chat was long-pressed
 
         // NEW: Smart typing logic states
         window.isThinking = false;
@@ -1040,8 +1132,29 @@
         };
 
         /* ==========================================================================
-           SIDEBAR NAVIGATION 
+           NEW: MODAL & ENHANCED SIDEBAR NAVIGATION LOGIC
            ========================================================================== */
+        function openChatModal(chatId, isPinned) {
+            selectedChatIdForModal = chatId;
+            pinChatText.innerText = isPinned ? "Unpin Chat" : "Pin Chat";
+            bottomModalOverlay.classList.add('show');
+            chatOptionsModal.classList.add('show');
+            history.pushState({ chatModalOpen: true }, "");
+        }
+
+        function closeChatModal() {
+            bottomModalOverlay.classList.remove('show');
+            chatOptionsModal.classList.remove('show');
+            selectedChatIdForModal = null;
+        }
+
+        bottomModalOverlay.addEventListener('click', () => {
+            closeChatModal();
+            if (history.state && history.state.chatModalOpen) {
+                history.back();
+            }
+        });
+
         const toggleSidebar = () => {
             sidebar.classList.toggle('open');
             sidebarOverlay.classList.toggle('show');
@@ -1059,8 +1172,11 @@
         closeSidebarBtn.addEventListener('click', toggleSidebar);
         sidebarOverlay.addEventListener('click', toggleSidebar);
 
+        // MODIFIED: Popstate to perfectly handle modal back button logic
         window.addEventListener('popstate', (e) => {
-            if (sidebar.classList.contains('open')) {
+            if (chatOptionsModal.classList.contains('show')) {
+                closeChatModal();
+            } else if (sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
                 sidebarOverlay.classList.remove('show');
             }
@@ -1090,6 +1206,41 @@
             toggleSidebar();
             
             document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+        });
+
+        // NEW: Database actions for modal buttons (Delete & Pin)
+        deleteChatBtn.addEventListener('click', async () => {
+            if(!selectedChatIdForModal || !currentUser) return;
+            const confirmDelete = confirm("Are you sure you want to completely delete this chat history?");
+            if (confirmDelete) {
+                try {
+                    await deleteDoc(doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`));
+                    // Reset screen if we deleted the chat we are currently looking at
+                    if(currentChatId === selectedChatIdForModal) {
+                        newChatBtn.click();
+                    }
+                    closeChatModal();
+                    if (history.state && history.state.chatModalOpen) history.back();
+                } catch(e) {
+                    console.error("Error deleting chat", e);
+                }
+            }
+        });
+
+        pinChatBtn.addEventListener('click', async () => {
+            if(!selectedChatIdForModal || !currentUser) return;
+            try {
+                const chatRef = doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`);
+                const chatSnap = await getDoc(chatRef);
+                if(chatSnap.exists()){
+                    const isPinned = chatSnap.data().pinned || false;
+                    await setDoc(chatRef, { pinned: !isPinned }, { merge: true });
+                }
+                closeChatModal();
+                if (history.state && history.state.chatModalOpen) history.back();
+            } catch(e) {
+                console.error("Error pinning chat", e);
+            }
         });
 
         /* ==========================================================================
@@ -1128,7 +1279,8 @@
                     await setDoc(chatDocRef, {
                         title: chatTitle,
                         updatedAt: serverTimestamp(),
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp(),
+                        pinned: false // New chats default to unpinned
                     });
 
                     listenToChat(currentChatId);
@@ -1274,18 +1426,30 @@
                 
                 if (snapshot.empty) {
                     historyList.innerHTML = `
-                        <div class="chat-item" style="color: rgba(255,255,255,0.3); text-align: center; margin-top: 20px;">
-                            <span class="material-symbols-rounded" style="font-size: 2rem; margin-bottom: 10px; display:block;">history</span>
+                        <div class="chat-item" style="color: rgba(255,255,255,0.3); text-align: center; margin-top: 20px; flex-direction: column; cursor: default;">
+                            <span class="material-symbols-rounded" style="font-size: 2rem; margin-bottom: 10px;">history</span>
                             No previous chats found.
                         </div>
                     `;
                     return;
                 }
 
+                let chats = [];
                 snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const chatId = docSnap.id;
+                    chats.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                // NEW: Client-side sorting so pinned chats permanently stay at the top
+                chats.sort((a, b) => {
+                    if (a.pinned && !b.pinned) return -1;
+                    if (!a.pinned && b.pinned) return 1;
+                    return 0; 
+                });
+
+                chats.forEach((data) => {
+                    const chatId = data.id;
                     const title = data.title || "New Chat";
+                    const isPinned = data.pinned || false;
 
                     const chatEl = document.createElement('div');
                     chatEl.className = 'chat-item';
@@ -1296,14 +1460,52 @@
                     
                     chatEl.innerText = title;
 
-                    chatEl.onclick = () => {
+                    // Add visual pin icon to the right side if it's pinned
+                    if (isPinned) {
+                        const pinIcon = document.createElement('span');
+                        pinIcon.className = 'material-symbols-rounded';
+                        pinIcon.innerText = 'keep';
+                        pinIcon.style.fontSize = '16px';
+                        pinIcon.style.marginLeft = 'auto';
+                        pinIcon.style.color = '#8a2be2';
+                        chatEl.appendChild(pinIcon);
+                    }
+
+                    // NEW: Long Press Logic (Smart Timer)
+                    let longPressTimer;
+                    let isLongPressing = false;
+
+                    const startPress = () => {
+                        isLongPressing = false;
+                        longPressTimer = setTimeout(() => {
+                            isLongPressing = true;
+                            openChatModal(chatId, isPinned);
+                        }, 600); // Triggers modal after 600ms hold
+                    };
+                    const cancelPress = () => clearTimeout(longPressTimer);
+
+                    chatEl.addEventListener('touchstart', startPress, { passive: true });
+                    chatEl.addEventListener('touchend', cancelPress);
+                    chatEl.addEventListener('touchmove', cancelPress);
+                    
+                    chatEl.addEventListener('mousedown', startPress);
+                    chatEl.addEventListener('mouseup', cancelPress);
+                    chatEl.addEventListener('mouseleave', cancelPress);
+
+                    // Normal click logic (canceled if it was a long press)
+                    chatEl.onclick = (e) => {
+                        if (isLongPressing) {
+                            e.preventDefault();
+                            return; 
+                        }
+                        
                         currentChatId = chatId;
                         welcomeScreen.classList.add('hidden'); 
                         
                         document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                         chatEl.classList.add('active');
                         
-                        window.isInitialChatLoad = true; // NEW: Tell the listener this is an old chat opening!
+                        window.isInitialChatLoad = true; // Tell the listener this is an old chat opening
                         listenToChat(chatId);
                         
                         if (window.innerWidth <= 768) {
