@@ -512,6 +512,39 @@
             padding: 4px;
             cursor: pointer;
         }
+
+        /* ==========================================================================
+           8. ADDED: Viewport Lock & Professional Capsule Overrides
+           ========================================================================== */
+        
+        /* OVERRIDE: Lock the body rigidly to stop whole-page push-up on mobile */
+        body {
+            position: fixed !important;
+            width: 100vw !important;
+        }
+
+        /* OVERRIDE: Professional Capsule Makeover (Meta AI Style) */
+        #input-wrapper {
+            position: fixed !important; /* Changed from absolute to fixed */
+            background: rgba(30, 30, 36, 0.85) !important; /* Richer, sleeker dark material */
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 26px !important;
+            padding: 6px 16px !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+        }
+
+        #input-wrapper.focused {
+            background: rgba(35, 35, 42, 0.98) !important;
+            border-color: rgba(138, 43, 226, 0.5) !important;
+            /* Sophisticated ring-glow instead of neon smear */
+            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.4), 0 10px 40px rgba(0, 0, 0, 0.8) !important;
+            width: 92% !important; /* Slightly narrower so it 'breathes' on the screen */
+        }
+
+        #chat-input {
+            padding: 12px 8px !important;
+            font-size: 1.05rem !important;
+        }
     </style>
 </head>
 <body>
@@ -954,6 +987,20 @@
             deferredPrompt = null;
             console.log('[Quan AI] PWA was successfully installed');
         });
+    </script>
+
+    <script>
+        // This API listens to the actual visible screen space (excluding the keyboard)
+        // It shrinks the body exactly to fit the screen above the keyboard, forcing ONLY the input to move up.
+        if (window.visualViewport) {
+            const viewport = window.visualViewport;
+            const body = document.body;
+            
+            viewport.addEventListener('resize', () => {
+                body.style.height = viewport.height + 'px';
+                window.scrollTo(0, 0); // Force scroll position to stay rigidly locked at the top
+            });
+        }
     </script>
 </body>
 </html>
