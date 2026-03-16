@@ -282,7 +282,7 @@
         }
 
         /* ==========================================================================
-           5. CHAT MESSAGES AREA
+           5. CHAT MESSAGES AREA (UPDATED FOR IMAGES)
            ========================================================================== */
         #messages-container {
             flex: 1;
@@ -326,8 +326,16 @@
             border-bottom-left-radius: 4px;
         }
 
+        /* ADDED: Styling for images inside chat bubbles */
+        .message-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
         /* ==========================================================================
-           6. CAPSULE INPUT AREA
+           6. CAPSULE INPUT AREA (UPDATED WITH IMAGE PREVIEW CSS)
            ========================================================================== */
         #input-wrapper {
             position: absolute;
@@ -352,6 +360,23 @@
             background: rgba(20, 22, 35, 0.9);
             border-color: rgba(138, 43, 226, 0.6);
             box-shadow: 0 0 25px rgba(138, 43, 226, 0.25), 0 0 10px rgba(255, 69, 0, 0.1);
+        }
+
+        /* ADDED: Image Preview Popup Container */
+        #image-preview-container {
+            display: none; 
+            position: absolute; 
+            bottom: 100%; 
+            left: 20px; 
+            margin-bottom: 15px; 
+            border-radius: 12px; 
+            border: 2px solid #8a2be2; 
+            width: 80px; 
+            height: 80px; 
+            overflow: hidden; 
+            background: #1a1a1a; 
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         #chat-input {
@@ -733,6 +758,18 @@
     </main>
 
     <div id="input-wrapper">
+        <div id="image-preview-container">
+            <img id="image-preview" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
+            <button id="remove-image-btn" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <span class="material-symbols-rounded" style="font-size: 16px;">close</span>
+            </button>
+        </div>
+
+        <input type="file" id="image-upload" accept="image/*" style="display: none;">
+        <button class="action-btn" id="attach-btn" title="Attach Image">
+            <span class="material-symbols-rounded">image</span>
+        </button>
+
         <button class="action-btn" title="Voice Input">
             <span class="material-symbols-rounded">mic</span>
         </button>
@@ -765,9 +802,19 @@
         const welcomeGreeting = document.getElementById('welcome-greeting');
         const newChatBtn = document.getElementById('new-chat-btn');
 
+        // ADDED: DOM Elements for Image Upload
+        const attachBtn = document.getElementById('attach-btn');
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const removeImageBtn = document.getElementById('remove-image-btn');
+
         let currentUser = null;
         let currentChatId = null; // null means we are in a "New Chat" state
         let messagesUnsubscribe = null; // For cleaning up listeners
+        
+        // ADDED: State variable to hold the Base64 image
+        let selectedImageBase64 = null;
 
         /* ==========================================================================
            1. INITIALIZATION & SECURITY ROUTING
@@ -814,6 +861,42 @@
         });
 
         /* ==========================================================================
+           ADDED: IMAGE SELECTION LOGIC
+           ========================================================================== */
+        
+        // Trigger file input when clip icon is clicked
+        attachBtn.addEventListener('click', () => {
+            imageUpload.click();
+        });
+
+        // Convert the image to Base64 when selected
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    selectedImageBase64 = event.target.result; // Grab the Base64 string
+                    imagePreview.src = selectedImageBase64;
+                    imagePreviewContainer.style.display = 'block'; // Show popup
+                    sendBtn.classList.add('active'); // Allow sending even if text is empty
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Cancel the image
+        removeImageBtn.addEventListener('click', () => {
+            selectedImageBase64 = null;
+            imagePreview.src = '';
+            imagePreviewContainer.style.display = 'none';
+            imageUpload.value = ''; // Reset file input
+            // Check if we should disable the send button
+            if (chatInput.value.trim().length === 0) {
+                sendBtn.classList.remove('active');
+            }
+        });
+
+        /* ==========================================================================
            2. UI INTERACTIONS (Capsule Glow & Welcome Screen Hide)
            ========================================================================== */
         
@@ -822,8 +905,8 @@
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
             
-            // Highlight send button if there is text
-            if (this.value.trim().length > 0) {
+            // Highlight send button if there is text OR an image selected (UPDATED LINE)
+            if (this.value.trim().length > 0 || selectedImageBase64) {
                 sendBtn.classList.add('active');
             } else {
                 sendBtn.classList.remove('active');
@@ -841,7 +924,8 @@
 
         // Shrink Capsule if empty and blurred
         chatInput.addEventListener('blur', () => {
-            if (chatInput.value.trim() === '') {
+            // UPDATED: Check for selected image too
+            if (chatInput.value.trim() === '' && !selectedImageBase64) {
                 inputWrapper.classList.remove('focused');
                 // Bring back welcome screen if no messages exist
                 if (messagesContainer.children.length === 0) {
@@ -900,6 +984,13 @@
             chatInput.style.height = 'auto';
             inputWrapper.classList.remove('focused');
             sendBtn.classList.remove('active');
+            
+            // Reset image picker
+            selectedImageBase64 = null;
+            imagePreviewContainer.style.display = 'none';
+            imagePreview.src = '';
+            imageUpload.value = '';
+
             if (messagesUnsubscribe) messagesUnsubscribe(); // Stop listening to old chat
             toggleSidebar();
             
@@ -911,14 +1002,31 @@
            4. CHAT LOGIC (Send & Receive) & REAL FIREBASE HISTORY FIX
            ========================================================================== */
         
-        // Render a single message bubble
-        function appendMessage(text, role) {
+        // Render a single message bubble (UPDATED to accept an image)
+        function appendMessage(text, role, imageUrl = null) {
             const row = document.createElement('div');
             row.className = `message-row ${role}`;
             
             const bubble = document.createElement('div');
             bubble.className = `bubble ${role}`;
-            bubble.innerText = text;
+            
+            // ADDED: Render the image inside the bubble if it exists
+            if (imageUrl) {
+                const imgEl = document.createElement('img');
+                imgEl.src = imageUrl;
+                imgEl.className = 'message-image';
+                bubble.appendChild(imgEl);
+            }
+            
+            // Render the text safely without overwriting the image
+            if (text) {
+                const textSpan = document.createElement('span');
+                textSpan.innerText = text;
+                bubble.appendChild(textSpan);
+            }
+
+            // ORIGINAL LINE COMMENTED OUT TO PRESERVE YOUR EXACT CODE (We use the span above instead so it doesn't break images)
+            // bubble.innerText = text; 
             
             row.appendChild(bubble);
             messagesContainer.appendChild(row);
@@ -932,14 +1040,26 @@
 
         async function handleSend() {
             const text = chatInput.value.trim();
-            if (!text || !currentUser) return;
+            // UPDATED: Check for both text AND image before rejecting
+            if ((!text && !selectedImageBase64) || !currentUser) return;
+
+            // Capture the image right now in case the user types fast and sends another
+            const currentImage = selectedImageBase64; 
 
             // 1. Immediately update UI
             chatInput.value = '';
             chatInput.style.height = 'auto';
             sendBtn.classList.remove('active');
             welcomeScreen.classList.add('hidden'); // Ensure it's hidden
-            appendMessage(text, 'user');
+            
+            // Hide and clear the image preview popup
+            imagePreviewContainer.style.display = 'none';
+            imagePreview.src = '';
+            selectedImageBase64 = null;
+            imageUpload.value = '';
+
+            // Render it optimistically on screen!
+            appendMessage(text, 'user', currentImage);
 
             try {
                 // 2. THIS WAS THE MISSING PIECE: Create the Parent Document!
@@ -949,8 +1069,9 @@
                     // Create the actual Chat Room Document for the sidebar to read
                     const chatDocRef = doc(db, `users/${currentUser.uid}/chats/${currentChatId}`);
                     
-                    // Use the first 25 characters of their message as the Chat Title
-                    const chatTitle = text.length > 25 ? text.substring(0, 25) + '...' : text;
+                    // Use the first 25 characters of their message as the Chat Title (or "Image Upload" if empty)
+                    let chatTitle = text.length > 25 ? text.substring(0, 25) + '...' : text;
+                    if (!chatTitle && currentImage) chatTitle = "Image Upload";
                     
                     // FIX: Using Date.now() instead of serverTimestamp() for 0ms visual latency!
                     await setDoc(chatDocRef, {
@@ -972,13 +1093,21 @@
                 const messagesRef = collection(db, path);
 
                 // FIX: Use Date.now() here as well to guarantee immediate rendering
-                await addDoc(messagesRef, {
+                // UPDATED: Construct payload to include image dynamically
+                const messagePayload = {
                     text: text,
                     role: "user",
                     uid: currentUser.uid,
                     timestamp: Date.now(),
                     needs_ai_reply: true // Tells your Node Backend to wake up
-                });
+                };
+
+                // Add Base64 image to the database payload if one was attached
+                if (currentImage) {
+                    messagePayload.imageUrl = currentImage;
+                }
+
+                await addDoc(messagesRef, messagePayload);
 
             } catch (error) {
                 console.error("Error sending message:", error);
@@ -1015,7 +1144,23 @@
                     row.className = `message-row ${data.role}`;
                     const bubble = document.createElement('div');
                     bubble.className = `bubble ${data.role}`;
-                    bubble.innerText = data.text;
+                    
+                    // ADDED IMAGE SUPPORT FOR REAL-TIME RENDERING
+                    if (data.imageUrl) {
+                        const img = document.createElement('img');
+                        img.src = data.imageUrl;
+                        img.className = 'message-image';
+                        bubble.appendChild(img);
+                    }
+                    if (data.text) {
+                        const textSpan = document.createElement('span');
+                        textSpan.innerText = data.text;
+                        bubble.appendChild(textSpan);
+                    }
+
+                    // ORIGINAL LINE COMMENTED OUT TO PRESERVE YOUR EXACT CODE
+                    // bubble.innerText = data.text;
+                    
                     row.appendChild(bubble);
                     messagesContainer.appendChild(row);
                 });
