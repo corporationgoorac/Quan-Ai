@@ -266,7 +266,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(3px);
             z-index: 2500;
             opacity: 0;
             pointer-events: none;
@@ -326,12 +326,22 @@
             transition: content 0.2s;
         }
 
+        /* NEW: Fixed height wrapper to prevent text jumping on load */
+        .welcome-title-wrapper {
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
         .welcome-title {
             font-size: 1.5rem;
             font-weight: 500;
-            margin-bottom: 30px;
             text-align: center;
             color: rgba(255, 255, 255, 0.9);
+            margin: 0;
         }
         
         .welcome-title .highlight {
@@ -627,6 +637,7 @@
             position: relative;
         }
 
+        /* Allow copy-paste inside the input specifically */
         #chat-input {
             width: 100%;
             background: transparent;
@@ -719,7 +730,7 @@
         }
 
         /* ==========================================================================
-           7. INSTALL BANNER
+           7. INSTALL BANNER & TOASTS
            ========================================================================== */
         #install-banner {
             position: fixed; top: 0; left: 0; width: 100%; background: rgba(10, 12, 20, 0.95);
@@ -856,7 +867,6 @@
             background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 50%; width: 40px; height: 40px;
             display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;
         }
-
     </style>
 </head>
 <body>
@@ -945,7 +955,10 @@
         
         <div id="welcome-screen">
             <img src="../images/icon.png" alt="Quan AI Logo" class="center-logo no-select" id="welcome-logo">
-            <h1 class="welcome-title no-select" id="welcome-greeting">How can I help you today?</h1>
+            
+            <div class="welcome-title-wrapper">
+                <h1 class="welcome-title no-select" id="welcome-greeting">How can I help you today?</h1>
+            </div>
             
             <div class="suggestions-grid no-select">
                 <div class="suggestion-chip" onclick="window.fillInput('Draft a polite email to my team about a project delay.')">
@@ -1940,6 +1953,23 @@
                     const bubble = document.createElement('div');
                     bubble.className = `bubble ${data.role}`;
                     
+                    // Double Tap Heart Animation
+                    let lastTap = 0;
+                    bubble.addEventListener('touchstart', (e) => {
+                        const currentTime = new Date().getTime();
+                        const tapLength = currentTime - lastTap;
+                        if (tapLength < 500 && tapLength > 0) {
+                            e.preventDefault();
+                            window.vibrateSuccess();
+                            const heart = document.createElement('div');
+                            heart.className = 'floating-heart material-symbols-rounded';
+                            heart.innerText = 'favorite';
+                            bubble.appendChild(heart);
+                            setTimeout(() => heart.remove(), 800);
+                        }
+                        lastTap = currentTime;
+                    });
+                    
                     if (data.imageUrl) {
                         const img = document.createElement('img');
                         img.src = data.imageUrl;
@@ -1998,7 +2028,7 @@
                                 if (!window.typedMessages.has(data.docId)) {
                                     window.typedMessages.add(data.docId);
                                     textSpan.classList.add('typing-cursor');
-                                    textSpan.dataset.fullText = data.text; 
+                                    textSpan.dataset.fullText = data.text; // Store for stop feature
                                     textSpan.innerHTML = '';
                                     
                                     actionsContainer.classList.add('hidden');
@@ -2095,213 +2125,3 @@
                 setTimeout(() => {
                     if (initialLoad) {
                         if (lastUserMessageEl) {
-                            const headerOffset = 70; 
-                            chatFlow.scrollTo({
-                                top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
-                                behavior: 'auto'
-                            });
-                        } else {
-                            chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'auto' });
-                        }
-                    } else if (messagesList.length > 0 && messagesList[messagesList.length - 1].role === 'user') {
-                        if (lastUserMessageEl) {
-                            const headerOffset = 70; 
-                            chatFlow.scrollTo({
-                                top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
-                                behavior: 'smooth'
-                            });
-                        }
-                    }
-                }, 50); 
-            });
-        }
-
-        function loadSidebarHistory() {
-            const chatsRef = collection(db, `users/${currentUser.uid}/chats`);
-            const q = query(chatsRef, orderBy("updatedAt", "desc")); 
-
-            onSnapshot(q, (snapshot) => {
-                const historyList = document.getElementById('chat-history-list');
-                historyList.innerHTML = ''; 
-                
-                if (snapshot.empty) {
-                    historyList.innerHTML = `
-                        <div class="chat-item" style="color: rgba(255,255,255,0.3); text-align: center; margin-top: 20px; flex-direction: column; cursor: default;">
-                            <div style="font-size: 2rem; margin-bottom: 10px;">${window.SVGS.history}</div>
-                            No previous chats found.
-                        </div>
-                    `;
-                    return;
-                }
-
-                let chats = [];
-                snapshot.forEach((docSnap) => {
-                    chats.push({ id: docSnap.id, ...docSnap.data() });
-                });
-
-                chats.sort((a, b) => {
-                    if (a.pinned && !b.pinned) return -1;
-                    if (!a.pinned && b.pinned) return 1;
-                    return 0; 
-                });
-
-                chats.forEach((data) => {
-                    const chatId = data.id;
-                    const title = data.title || "New Chat";
-                    const isPinned = data.pinned || false;
-                    
-                    let timeString = "";
-                    if(data.updatedAt) {
-                        const millis = data.updatedAt.toMillis ? data.updatedAt.toMillis() : data.updatedAt;
-                        timeString = timeAgo(millis);
-                    }
-
-                    const chatEl = document.createElement('div');
-                    chatEl.className = 'chat-item';
-                    
-                    if (chatId === currentChatId) {
-                        chatEl.classList.add('active');
-                    }
-                    
-                    // NEW: Subtitle logic to show preview of what was said
-                    chatEl.innerHTML = `
-                        <div style="width:100%;">
-                            <div class="chat-item-title">
-                                <span>${title}</span>
-                                ${isPinned ? `<span style="color:#8a2be2; width:16px;">${window.SVGS.keep}</span>` : ''}
-                            </div>
-                            <div class="chat-item-meta">
-                                <span>${timeString}</span>
-                            </div>
-                        </div>
-                    `;
-
-                    let longPressTimer;
-                    let isLongPressing = false;
-
-                    const startPress = () => {
-                        isLongPressing = false;
-                        longPressTimer = setTimeout(() => {
-                            isLongPressing = true;
-                            openChatModal(chatId, isPinned);
-                        }, 600); 
-                    };
-                    const cancelPress = () => clearTimeout(longPressTimer);
-
-                    chatEl.addEventListener('touchstart', startPress, { passive: true });
-                    chatEl.addEventListener('touchend', cancelPress);
-                    chatEl.addEventListener('touchmove', cancelPress);
-                    
-                    chatEl.addEventListener('mousedown', startPress);
-                    chatEl.addEventListener('mouseup', cancelPress);
-                    chatEl.addEventListener('mouseleave', cancelPress);
-
-                    chatEl.onclick = (e) => {
-                        if (isLongPressing) {
-                            e.preventDefault();
-                            return; 
-                        }
-                        
-                        currentChatId = chatId;
-                        welcomeScreen.classList.add('hidden'); 
-                        
-                        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-                        chatEl.classList.add('active');
-                        
-                        window.isInitialChatLoad = true; 
-
-                        const cachedHtml = localStorage.getItem('chat_html_' + chatId);
-                        if (cachedHtml) {
-                            messagesContainer.innerHTML = cachedHtml;
-                            setTimeout(() => {
-                                const userRows = messagesContainer.querySelectorAll('.message-row.user');
-                                if(userRows.length > 0) {
-                                    const lastUser = userRows[userRows.length - 1];
-                                    chatFlow.scrollTop = Math.max(0, lastUser.offsetTop - 70);
-                                } else {
-                                    chatFlow.scrollTop = chatFlow.scrollHeight;
-                                }
-                            }, 10);
-                        } else {
-                            messagesContainer.innerHTML = '';
-                        }
-
-                        listenToChat(chatId);
-                        
-                        if (window.innerWidth <= 768) {
-                            toggleSidebar();
-                        }
-                    };
-
-                    historyList.appendChild(chatEl);
-                });
-            });
-        }
-    </script>
-    
-    <script>
-        // NEW: Advanced PWA Update Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('../sw.js').then(registration => {
-                    console.log('[Quan AI] Service Worker active');
-                    
-                    registration.onupdatefound = () => {
-                        const installingWorker = registration.installing;
-                        installingWorker.onstatechange = () => {
-                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                window.showToast('New update available! Tap to reload.', 'update');
-                                document.getElementById('global-toast').onclick = () => window.location.reload();
-                            }
-                        };
-                    };
-                }).catch(error => {
-                    console.error('[Quan AI] SW fail:', error);
-                });
-            });
-        }
-    </script>
-
-    <script>
-        let deferredPrompt;
-        const installBanner = document.getElementById('install-banner');
-        const installBtn = document.getElementById('install-btn');
-        const closeInstallBtn = document.getElementById('close-install-btn');
-
-        const isInstallDismissed = localStorage.getItem('quan_install_dismissed');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            if (!isInstallDismissed) {
-                setTimeout(() => {
-                    installBanner.style.display = 'flex';
-                    void installBanner.offsetWidth; 
-                    installBanner.classList.add('visible');
-                }, 1000); 
-            }
-        });
-
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`[Quan AI] Install prompt: ${outcome}`);
-            deferredPrompt = null;
-            installBanner.classList.remove('visible');
-            setTimeout(() => installBanner.style.display = 'none', 400);
-        });
-
-        closeInstallBtn.addEventListener('click', () => {
-            installBanner.classList.remove('visible');
-            setTimeout(() => installBanner.style.display = 'none', 400);
-            localStorage.setItem('quan_install_dismissed', 'true');
-        });
-
-        window.addEventListener('appinstalled', () => {
-            installBanner.style.display = 'none';
-            deferredPrompt = null;
-        });
-    </script>
-</body>
-</html>
