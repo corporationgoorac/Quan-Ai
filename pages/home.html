@@ -45,7 +45,7 @@
             left: 0 !important; 
             top: 0 !important;
             overscroll-behavior: none !important;
-            overscroll-behavior-y: none !important; 
+            overscroll-behavior-y: none !important; /* NEW: Kills pull-to-refresh loading bar on Android/iOS */
             touch-action: none;
             margin: 0;
             padding: 0;
@@ -95,7 +95,7 @@
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            border-bottom: none !important;
+            border-bottom: none !important; /* UPDATED: Removed border per your request */
             z-index: 2000 !important;
             flex-shrink: 0;
         }
@@ -388,36 +388,37 @@
             width: 100%;
             z-index: 1000;
             position: relative;
-            margin-top: auto; 
+            margin-top: auto; /* Pushes it to the very bottom */
             touch-action: pan-y !important;
         }
 
         .input-area {
-            margin: 12px 24px; 
-            padding: 6px 10px; 
+            margin: 12px 24px; /* Compressed small look by default */
+            padding: 6px 10px; /* Thicker and more elegant */
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(18, 18, 24, 0.85); 
+            background: rgba(18, 18, 24, 0.85); /* Richer dark glass background */
             border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.08); 
+            border: 1px solid rgba(255, 255, 255, 0.08); /* More subtle, premium border */
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
-            transform: scale(0.96); 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); /* Cleaner resting shadow */
+            transform: scale(0.96); /* Physically smaller */
             transform-origin: bottom center;
             transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
             touch-action: none !important;
             position: relative;
         }
 
+        /* Expands beautifully when focused or when text is inside */
         .input-area:focus-within, .input-area.focused {
-            margin: 8px 12px; 
-            transform: scale(1); 
-            border-radius: 28px; 
-            background: rgba(22, 22, 30, 0.98); 
-            border-color: rgba(138, 43, 226, 0.6); 
-            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.5); 
+            margin: 8px 12px; /* Expand full width */
+            transform: scale(1); /* Grow to full size */
+            border-radius: 28px; /* Slightly squarer on focus for typing area */
+            background: rgba(22, 22, 30, 0.98); /* Solid background on focus */
+            border-color: rgba(138, 43, 226, 0.6); /* Vibrant active border */
+            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.5); /* Ambient glow effect */
         }
 
         .input-box {
@@ -427,7 +428,7 @@
             min-height: 40px;
         }
 
-        /* NEW: Allow copy-paste inside the input specifically */
+        /* Allow copy-paste inside the input specifically */
         #chat-input {
             width: 100%;
             background: transparent;
@@ -699,7 +700,7 @@
         @keyframes blink { 50% { opacity: 0; } }
 
         /* ==========================================================================
-           9. BOTTOM MODAL FOR CHAT OPTIONS
+           9. BOTTOM MODAL FOR CHAT OPTIONS (PIN & DELETE)
            ========================================================================== */
         #bottom-modal-overlay {
             position: fixed;
@@ -755,6 +756,47 @@
         }
         .modal-option.delete .material-symbols-rounded {
             color: #ff4500;
+        }
+
+        /* ==========================================================================
+           10. NEW: VOICE VISUALIZER CSS
+           ========================================================================== */
+        #voice-visualizer {
+            display: none;
+            flex: 1;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            padding-left: 10px;
+        }
+        #voice-visualizer.active {
+            display: flex;
+        }
+        .visualizer-bar {
+            width: 4px;
+            background: linear-gradient(180deg, #8a2be2, #ff4500);
+            border-radius: 4px;
+            animation: sound-bounce 0.4s infinite alternate ease-in-out;
+        }
+        .visualizer-bar:nth-child(1) { height: 10px; animation-delay: 0.0s; }
+        .visualizer-bar:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+        .visualizer-bar:nth-child(3) { height: 22px; animation-delay: 0.2s; }
+        .visualizer-bar:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+        .visualizer-bar:nth-child(5) { height: 10px; animation-delay: 0.4s; }
+        @keyframes sound-bounce {
+            0% { transform: scaleY(0.5); opacity: 0.7; }
+            100% { transform: scaleY(1.5); opacity: 1; }
+        }
+        .listening-text {
+            color: #f0f0f0;
+            font-size: 1.05rem;
+            margin-left: 10px;
+            font-weight: 500;
+            animation: pulse-listening 1.5s infinite;
+        }
+        @keyframes pulse-listening {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
         }
 
     </style>
@@ -853,6 +895,14 @@
             
             <div class="input-box">
                 <textarea id="chat-input" placeholder="Ask Quan anything..." rows="1"></textarea>
+                <div id="voice-visualizer">
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <span class="listening-text">Listening...</span>
+                </div>
             </div>
             
             <button class="send-btn" id="send-btn" title="Send Message">
@@ -892,8 +942,9 @@
         const messagesContainer = document.getElementById('messages-container');
         const chatFlow = document.getElementById('chat-flow');
         const sendBtn = document.getElementById('send-btn');
-        const sendIcon = document.getElementById('send-btn-icon'); // NEW
+        const sendIcon = document.getElementById('send-btn-icon'); 
         const micBtnWrapper = document.getElementById('mic-btn-wrapper');
+        const micBtn = document.getElementById('mic-btn'); // NEW EXPLICIT REFERENCE
         const attachBtn = document.getElementById('attach-btn');
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -913,6 +964,8 @@
         const pinChatBtn = document.getElementById('pin-chat-btn');
         const pinChatText = document.getElementById('pin-chat-text');
         const deleteChatBtn = document.getElementById('delete-chat-btn');
+        
+        const voiceVisualizer = document.getElementById('voice-visualizer'); // NEW
 
         let currentUser = null;
         let currentChatId = null; 
@@ -922,10 +975,65 @@
 
         // Smart typing logic states
         window.isThinking = false;
-        window.isGenerating = false; // NEW: Gemini style generation tracker
-        window.activeTypeWriter = null; // NEW: Tracker to kill typing
+        window.isGenerating = false; 
+        window.activeTypeWriter = null; 
         window.typedMessages = new Set(); 
         window.isInitialChatLoad = true; 
+
+        /* ==========================================================================
+           NEW: VOICE RECOGNITION SETUP
+           ========================================================================== */
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            
+            recognition.onstart = function() {
+                chatInput.style.display = 'none';
+                voiceVisualizer.classList.add('active');
+                inputCapsule.classList.add('focused');
+                micBtn.style.color = '#ff4500';
+                attachBtn.style.display = 'none';
+            };
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                const currentText = chatInput.value;
+                chatInput.value = currentText ? currentText + ' ' + transcript : transcript;
+            };
+            
+            recognition.onend = function() {
+                chatInput.style.display = 'block';
+                voiceVisualizer.classList.remove('active');
+                micBtn.style.color = '#8a2be2';
+                chatInput.dispatchEvent(new Event('input')); // Triggers expansion & send btn
+                updateSendBtnState();
+            };
+            
+            recognition.onerror = function(event) {
+                console.error("Speech recognition error", event.error);
+                chatInput.style.display = 'block';
+                voiceVisualizer.classList.remove('active');
+                micBtn.style.color = '#8a2be2';
+                updateSendBtnState();
+            };
+        }
+
+        if (micBtn) {
+            micBtn.addEventListener('click', () => {
+                if (recognition) {
+                    try {
+                        recognition.start();
+                    } catch(e) {
+                        recognition.stop();
+                    }
+                } else {
+                    alert("Voice recognition is not supported on this browser.");
+                }
+            });
+        }
 
         /* ==========================================================================
            1. INITIALIZATION & SECURITY ROUTING
@@ -974,14 +1082,14 @@
         });
 
         /* ==========================================================================
-           NEW: DYNAMIC SEND / STOP BUTTON STATE CONTROLLER
+           DYNAMIC SEND / STOP BUTTON STATE CONTROLLER
            ========================================================================== */
         function updateSendBtnState() {
             if (window.isGenerating) {
                 inputCapsule.classList.add('focused');
                 sendBtn.classList.add('active');
                 sendBtn.style.display = 'flex';
-                sendIcon.innerText = 'stop_circle'; // Morph to STOP button
+                sendIcon.innerText = 'stop_circle'; 
                 micBtnWrapper.style.display = 'none';
                 attachBtn.style.display = 'none';
             } else {
@@ -1093,7 +1201,7 @@
                         imagePreview.src = selectedImageBase64;
                         imagePreviewContainer.style.display = 'block'; 
                         
-                        updateSendBtnState(); // NEW: Triggers the UI swap
+                        updateSendBtnState(); 
                     }
                     img.src = event.target.result;
                 };
@@ -1106,7 +1214,7 @@
             imagePreview.src = '';
             imagePreviewContainer.style.display = 'none';
             imageUpload.value = ''; 
-            updateSendBtnState(); // NEW: Triggers the UI swap
+            updateSendBtnState(); 
         });
 
         /* ==========================================================================
@@ -1115,7 +1223,7 @@
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-            updateSendBtnState(); // NEW: Triggers the UI swap dynamically
+            updateSendBtnState(); 
             chatFlow.scrollTo({ top: chatFlow.scrollHeight });
         });
 
@@ -1209,8 +1317,8 @@
             imageUpload.value = '';
 
             window.isThinking = false;
-            window.isGenerating = false; // reset
-            updateSendBtnState(); // apply reset
+            window.isGenerating = false; 
+            updateSendBtnState(); 
             window.typedMessages.clear();
             window.isInitialChatLoad = true; 
 
@@ -1223,16 +1331,18 @@
         // Database actions for modal buttons (Delete & Pin)
         deleteChatBtn.addEventListener('click', async () => {
             if(!selectedChatIdForModal || !currentUser) return;
-            // UPDATED: Native confirm popup removed per request, automatically proceed to delete
-            try {
-                await deleteDoc(doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`));
-                if(currentChatId === selectedChatIdForModal) {
-                    newChatBtn.click();
+            const confirmDelete = true; 
+            if (confirmDelete) {
+                try {
+                    await deleteDoc(doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`));
+                    if(currentChatId === selectedChatIdForModal) {
+                        newChatBtn.click();
+                    }
+                    closeChatModal();
+                    if (history.state && history.state.chatModalOpen) history.back();
+                } catch(e) {
+                    console.error("Error deleting chat", e);
                 }
-                closeChatModal();
-                if (history.state && history.state.chatModalOpen) history.back();
-            } catch(e) {
-                console.error("Error deleting chat", e);
             }
         });
 
@@ -1272,7 +1382,7 @@
             imageUpload.value = '';
 
             window.isInitialChatLoad = false; 
-            window.isGenerating = true; // Lock UI into generation mode
+            window.isGenerating = true; 
             updateSendBtnState();
 
             try {
@@ -1321,10 +1431,9 @@
             }
         }
 
-        // NEW: Dual-function Send Button (Send or Kill Generation)
         sendBtn.addEventListener('click', (e) => {
             if (window.isGenerating) {
-                e.preventDefault(); // Stop normal behavior
+                e.preventDefault(); 
                 if (window.activeTypeWriter) {
                     clearInterval(window.activeTypeWriter);
                     window.activeTypeWriter = null;
@@ -1342,7 +1451,7 @@
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                if(!window.isGenerating) handleSend(); // Block enter if generating
+                if(!window.isGenerating) handleSend(); 
             }
         });
 
@@ -1399,7 +1508,6 @@
                         
                         const isLastItem = (index === messagesList.length - 1);
                         
-                        // Smart Typer logic
                         if (data.role === 'ai' && isLastItem) {
                             isLastAi = true;
                             if (!window.typedMessages.has(data.docId)) {
@@ -1408,7 +1516,7 @@
                                 textSpan.innerText = '';
                                 let i = 0;
                                 window.isThinking = false; 
-                                window.isGenerating = true; // Still generating
+                                window.isGenerating = true; 
                                 updateSendBtnState();
                                 
                                 window.activeTypeWriter = setInterval(() => {
