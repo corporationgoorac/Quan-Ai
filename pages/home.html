@@ -373,7 +373,7 @@
         }
 
         /* ==========================================================================
-           6. FLAGSHIP CAPSULE INPUT AREA (EXACT FROM GROUPCHAT.HTML)
+           6. FLAGSHIP CAPSULE INPUT AREA (PROFESSIONALLY UPDATED)
            ========================================================================== */
         .input-area-container {
             background: transparent;
@@ -389,16 +389,16 @@
 
         .input-area {
             margin: 12px 24px; /* Compressed small look by default */
-            padding: 4px 8px;
+            padding: 6px 10px; /* Thicker and more elegant */
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(30, 30, 36, 0.75); /* Slightly transparent when idle */
+            background: rgba(18, 18, 24, 0.85); /* Richer dark glass background */
             border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            box-shadow: 0 -2px 15px rgba(138, 43, 226, 0.15), 0 8px 25px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08); /* More subtle, premium border */
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); /* Cleaner resting shadow */
             transform: scale(0.96); /* Physically smaller */
             transform-origin: bottom center;
             transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -410,10 +410,10 @@
         .input-area:focus-within, .input-area.focused {
             margin: 8px 12px; /* Expand full width */
             transform: scale(1); /* Grow to full size */
-            border-radius: 26px;
-            background: rgba(25, 25, 35, 0.98); /* Solid background on focus */
-            border-color: #8a2be2;
-            box-shadow: 0 -2px 20px rgba(138, 43, 226, 0.3), 0 8px 25px rgba(138, 43, 226, 0.25);
+            border-radius: 28px; /* Slightly squarer on focus for typing area */
+            background: rgba(22, 22, 30, 0.98); /* Solid background on focus */
+            border-color: rgba(138, 43, 226, 0.6); /* Vibrant active border */
+            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.5); /* Ambient glow effect */
         }
 
         .input-box {
@@ -427,14 +427,14 @@
             width: 100%;
             background: transparent;
             border: none;
-            color: white;
-            padding: 8px 4px;
+            color: #f0f0f0; /* Softer, premium white text */
+            padding: 10px 4px; /* Better vertical breathing room */
             font-size: 1.05rem;
             resize: none;
             max-height: 120px;
             outline: none;
             font-family: inherit;
-            line-height: 1.4;
+            line-height: 1.5; /* Enhanced readability */
             overscroll-behavior-y: contain;
         }
 
@@ -876,7 +876,6 @@
     <script type="module">
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        // NEW: Imported deleteDoc for the new modal functionality
         import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // DOM Elements
@@ -936,7 +935,6 @@
             if (user) {
                 currentUser = user;
                 
-                // NEW: FIX FOR PROFILE PICTURE NOT SHOWING. Hard pulls from auth!
                 if(user.photoURL) {
                     headerProfilePic.src = user.photoURL;
                     headerProfilePic.style.display = 'block';
@@ -1172,7 +1170,6 @@
         closeSidebarBtn.addEventListener('click', toggleSidebar);
         sidebarOverlay.addEventListener('click', toggleSidebar);
 
-        // MODIFIED: Popstate to perfectly handle modal back button logic
         window.addEventListener('popstate', (e) => {
             if (chatOptionsModal.classList.contains('show')) {
                 closeChatModal();
@@ -1211,7 +1208,8 @@
         // NEW: Database actions for modal buttons (Delete & Pin)
         deleteChatBtn.addEventListener('click', async () => {
             if(!selectedChatIdForModal || !currentUser) return;
-            const confirmDelete = confirm("Are you sure you want to completely delete this chat history?");
+            // Native confirm popup removed per request, automatically proceed to delete
+            const confirmDelete = true; 
             if (confirmDelete) {
                 try {
                     await deleteDoc(doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`));
@@ -1339,7 +1337,6 @@
                     const docId = doc.id;
                     messagesList.push({ ...docData, docId: docId });
                     
-                    // NEW: If this is the first time opening an old chat, mark everything as 'already typed'
                     if(window.isInitialChatLoad) {
                         window.typedMessages.add(docId);
                     }
@@ -1439,7 +1436,7 @@
                     chats.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // NEW: Client-side sorting so pinned chats permanently stay at the top
+                // Client-side sorting so pinned chats permanently stay at the top
                 chats.sort((a, b) => {
                     if (a.pinned && !b.pinned) return -1;
                     if (!a.pinned && b.pinned) return 1;
@@ -1471,7 +1468,7 @@
                         chatEl.appendChild(pinIcon);
                     }
 
-                    // NEW: Long Press Logic (Smart Timer)
+                    // Long Press Logic (Smart Timer)
                     let longPressTimer;
                     let isLongPressing = false;
 
