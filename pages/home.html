@@ -774,7 +774,8 @@
     <script type="module">
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        // IMPORT SETDOC so we can create the parent chat document!
+        import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // DOM Elements
         const chatInput = document.getElementById('chat-input');
@@ -927,10 +928,13 @@
             sendBtn.classList.remove('active');
             if (messagesUnsubscribe) messagesUnsubscribe(); // Stop listening to old chat
             toggleSidebar();
+            
+            // visually clear active state
+            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
         });
 
         /* ==========================================================================
-           4. CHAT LOGIC (Send & Receive)
+           4. CHAT LOGIC (Send & Receive) & REAL FIREBASE HISTORY FIX
            ========================================================================== */
         
         // Render a single message bubble
@@ -964,15 +968,31 @@
             appendMessage(text, 'user');
 
             try {
-                // 2. If this is a brand new chat, we need to create a chat document first
+                // 2. THIS WAS THE MISSING PIECE: Create the Parent Document!
                 if (!currentChatId) {
-                    // Generate a random ID for the new chat session
                     currentChatId = "chat_" + Date.now();
+                    
+                    // Create the actual Chat Room Document for the sidebar to read
+                    const chatDocRef = doc(db, `users/${currentUser.uid}/chats/${currentChatId}`);
+                    
+                    // Use the first 25 characters of their message as the Chat Title
+                    const chatTitle = text.length > 25 ? text.substring(0, 25) + '...' : text;
+                    
+                    await setDoc(chatDocRef, {
+                        title: chatTitle,
+                        updatedAt: serverTimestamp(),
+                        createdAt: serverTimestamp()
+                    });
+
                     // Setup the listener for this new room immediately
                     listenToChat(currentChatId);
+                } else {
+                    // Update the timestamp so it jumps to the top of the sidebar list
+                    const chatDocRef = doc(db, `users/${currentUser.uid}/chats/${currentChatId}`);
+                    await setDoc(chatDocRef, { updatedAt: serverTimestamp() }, { merge: true });
                 }
 
-                // 3. Send the flare gun to Firebase
+                // 3. Send the flare gun (the message itself) to Firebase
                 const path = `users/${currentUser.uid}/chats/${currentChatId}/messages`;
                 const messagesRef = collection(db, path);
 
@@ -1000,7 +1020,7 @@
         });
 
         /* ==========================================================================
-           5. DATABASE LISTENERS
+           5. DATABASE LISTENERS (REAL SIDEBAR SYNC)
            ========================================================================== */
         
         function listenToChat(chatId) {
@@ -1010,13 +1030,11 @@
             const q = query(collection(db, path), orderBy("timestamp", "asc"));
 
             messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-                // For a highly robust app, you only append *new* changes.
                 // For simplicity here, we clear and re-render.
                 messagesContainer.innerHTML = ''; 
                 
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    // Render locally without animation since we did immediate UI update on send
                     const row = document.createElement('div');
                     row.className = `message-row ${data.role}`;
                     const bubble = document.createElement('div');
@@ -1034,16 +1052,61 @@
         }
 
         function loadSidebarHistory() {
-            // Note: In a full app, you would query a `chats` collection to list history.
-            // Because we haven't structured the history collection creation in previous steps, 
-            // this is left as a placeholder for where that logic goes.
-            const historyList = document.getElementById('chat-history-list');
-            historyList.innerHTML = `
-                <div class="chat-item" style="color: rgba(255,255,255,0.3); text-align: center; margin-top: 20px;">
-                    <span class="material-symbols-rounded" style="font-size: 2rem; margin-bottom: 10px; display:block;">history</span>
-                    No previous chats found.
-                </div>
-            `;
+            // WE NOW QUERY THE REAL FIREBASE COLLECTION FOR CHATS!
+            const chatsRef = collection(db, `users/${currentUser.uid}/chats`);
+            const q = query(chatsRef, orderBy("updatedAt", "desc")); // Newest chats at the top
+
+            onSnapshot(q, (snapshot) => {
+                const historyList = document.getElementById('chat-history-list');
+                historyList.innerHTML = ''; // Clear out the placeholder
+                
+                if (snapshot.empty) {
+                    historyList.innerHTML = `
+                        <div class="chat-item" style="color: rgba(255,255,255,0.3); text-align: center; margin-top: 20px;">
+                            <span class="material-symbols-rounded" style="font-size: 2rem; margin-bottom: 10px; display:block;">history</span>
+                            No previous chats found.
+                        </div>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const chatId = docSnap.id;
+                    const title = data.title || "New Chat";
+
+                    // Create the clickable sidebar item
+                    const chatEl = document.createElement('div');
+                    chatEl.className = 'chat-item';
+                    
+                    // Highlight if it's the chat we are currently looking at
+                    if (chatId === currentChatId) {
+                        chatEl.classList.add('active');
+                    }
+                    
+                    chatEl.innerText = title;
+
+                    // Make it clickable to load the past chat
+                    chatEl.onclick = () => {
+                        currentChatId = chatId;
+                        welcomeScreen.classList.add('hidden'); // Hide the greeting
+                        
+                        // Visually switch active state
+                        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+                        chatEl.classList.add('active');
+                        
+                        // Load messages from firebase
+                        listenToChat(chatId);
+                        
+                        // Auto-close sidebar on mobile after selecting a chat
+                        if (window.innerWidth <= 768) {
+                            toggleSidebar();
+                        }
+                    };
+
+                    historyList.appendChild(chatEl);
+                });
+            });
         }
     </script>
     
