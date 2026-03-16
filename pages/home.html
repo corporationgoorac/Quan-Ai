@@ -347,8 +347,17 @@
         .message-row.user { justify-content: flex-end; }
         .message-row.ai { justify-content: flex-start; }
 
+        /* NEW: Wrapper to hold bubble and Gemini action buttons together */
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 90%; 
+        }
+        .message-wrapper.user { align-items: flex-end; }
+        .message-wrapper.ai { align-items: flex-start; }
+
         .bubble {
-            max-width: 90%; /* Expanded width for readability */
+            max-width: 100%; /* Changed to 100% because wrapper handles width now */
             padding: 12px 18px;
             font-size: 1rem;
             line-height: 1.5;
@@ -375,6 +384,42 @@
             border-radius: 10px;
             margin-bottom: 8px;
             display: block;
+        }
+
+        /* NEW: Gemini Style Action Buttons CSS */
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+            padding: 0 4px;
+            opacity: 1;
+            transition: opacity 0.3s ease, height 0.3s ease;
+        }
+        .message-actions.hidden {
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        .action-icon {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.4);
+            cursor: pointer;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s, background 0.2s;
+            border-radius: 50%;
+        }
+        .action-icon:hover {
+            color: #ffffff;
+            background: rgba(255,255,255,0.1);
+        }
+        .action-icon span {
+            font-size: 18px;
         }
 
         /* ==========================================================================
@@ -759,7 +804,7 @@
         }
 
         /* ==========================================================================
-           10. NEW: VOICE VISUALIZER CSS
+           10. VOICE VISUALIZER CSS
            ========================================================================== */
         #voice-visualizer {
             display: none;
@@ -944,7 +989,7 @@
         const sendBtn = document.getElementById('send-btn');
         const sendIcon = document.getElementById('send-btn-icon'); 
         const micBtnWrapper = document.getElementById('mic-btn-wrapper');
-        const micBtn = document.getElementById('mic-btn'); // NEW EXPLICIT REFERENCE
+        const micBtn = document.getElementById('mic-btn'); 
         const attachBtn = document.getElementById('attach-btn');
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -965,7 +1010,7 @@
         const pinChatText = document.getElementById('pin-chat-text');
         const deleteChatBtn = document.getElementById('delete-chat-btn');
         
-        const voiceVisualizer = document.getElementById('voice-visualizer'); // NEW
+        const voiceVisualizer = document.getElementById('voice-visualizer'); 
 
         let currentUser = null;
         let currentChatId = null; 
@@ -979,9 +1024,10 @@
         window.activeTypeWriter = null; 
         window.typedMessages = new Set(); 
         window.isInitialChatLoad = true; 
+        window.activeActionsEl = null; // NEW: Tracks the actions bar to show after typing
 
         /* ==========================================================================
-           NEW: VOICE RECOGNITION SETUP
+           VOICE RECOGNITION SETUP
            ========================================================================== */
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
@@ -1138,7 +1184,7 @@
         }
 
         /* ==========================================================================
-           VIEWPORT LOCK LOGIC (AGGRESSIVE ANTI-SCROLL FROM GROUPCHAT.HTML)
+           VIEWPORT LOCK LOGIC 
            ========================================================================== */
         function lockViewportAndHeader() {
             const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -1431,6 +1477,7 @@
             }
         }
 
+        // Dual-function Send Button (Send or Kill Generation)
         sendBtn.addEventListener('click', (e) => {
             if (window.isGenerating) {
                 e.preventDefault(); 
@@ -1439,6 +1486,11 @@
                     window.activeTypeWriter = null;
                 }
                 document.querySelectorAll('.typing-cursor').forEach(el => el.classList.remove('typing-cursor'));
+                
+                // NEW: Unhide the action bar immediately if stopped!
+                if (window.activeActionsEl) window.activeActionsEl.classList.remove('hidden');
+                window.activeActionsEl = null;
+
                 window.isGenerating = false;
                 window.isThinking = false;
                 updateThinkingIndicator();
@@ -1456,7 +1508,7 @@
         });
 
         /* ==========================================================================
-           DATABASE LISTENERS (WITH TYPING EFFECT)
+           DATABASE LISTENERS (WITH TYPING EFFECT & ACTIONS BAR)
            ========================================================================== */
         
         function listenToChat(chatId) {
@@ -1479,6 +1531,7 @@
                     }
                 });
 
+                const initialLoad = window.isInitialChatLoad; // Track locally for the auto-scroll
                 window.isInitialChatLoad = false; 
 
                 messagesList.sort((a, b) => {
@@ -1492,6 +1545,11 @@
                 messagesList.forEach((data, index) => {
                     const row = document.createElement('div');
                     row.className = `message-row ${data.role}`;
+                    
+                    // NEW: Flex Wrapper to hold Bubble + Actions together
+                    const wrapper = document.createElement('div');
+                    wrapper.className = `message-wrapper ${data.role}`;
+
                     const bubble = document.createElement('div');
                     bubble.className = `bubble ${data.role}`;
                     
@@ -1502,36 +1560,82 @@
                         bubble.appendChild(img);
                     }
                     
+                    let actionsContainer = null;
+
                     if (data.text) {
                         const textSpan = document.createElement('span');
                         bubble.appendChild(textSpan);
                         
                         const isLastItem = (index === messagesList.length - 1);
                         
-                        if (data.role === 'ai' && isLastItem) {
-                            isLastAi = true;
-                            if (!window.typedMessages.has(data.docId)) {
-                                window.typedMessages.add(data.docId);
-                                textSpan.classList.add('typing-cursor');
-                                textSpan.innerText = '';
-                                let i = 0;
-                                window.isThinking = false; 
-                                window.isGenerating = true; 
-                                updateSendBtnState();
-                                
-                                window.activeTypeWriter = setInterval(() => {
-                                    if (i < data.text.length) {
-                                        textSpan.innerText += data.text.charAt(i);
-                                        i++;
-                                        chatFlow.scrollTo({ top: chatFlow.scrollHeight });
-                                    } else {
-                                        clearInterval(window.activeTypeWriter);
-                                        window.activeTypeWriter = null;
-                                        textSpan.classList.remove('typing-cursor');
-                                        window.isGenerating = false;
-                                        updateSendBtnState();
-                                    }
-                                }, 15); 
+                        if (data.role === 'ai') {
+                            // NEW: Gemini Style Action Bar
+                            actionsContainer = document.createElement('div');
+                            actionsContainer.className = 'message-actions';
+                            
+                            const copyBtn = document.createElement('button');
+                            copyBtn.className = 'action-icon';
+                            copyBtn.innerHTML = '<span class="material-symbols-rounded">content_copy</span>';
+                            copyBtn.onclick = () => navigator.clipboard.writeText(data.text);
+                            
+                            const shareBtn = document.createElement('button');
+                            shareBtn.className = 'action-icon';
+                            shareBtn.innerHTML = '<span class="material-symbols-rounded">share</span>';
+                            shareBtn.onclick = () => {
+                                if (navigator.share) navigator.share({ text: data.text }).catch(e=>console.log(e));
+                                else navigator.clipboard.writeText(data.text);
+                            };
+
+                            const speakBtn = document.createElement('button');
+                            speakBtn.className = 'action-icon';
+                            speakBtn.innerHTML = '<span class="material-symbols-rounded">volume_up</span>';
+                            speakBtn.onclick = () => {
+                                window.speechSynthesis.cancel();
+                                window.speechSynthesis.speak(new SpeechSynthesisUtterance(data.text));
+                            };
+
+                            actionsContainer.appendChild(copyBtn);
+                            actionsContainer.appendChild(shareBtn);
+                            actionsContainer.appendChild(speakBtn);
+
+                            // Smart Typer logic
+                            if (isLastItem) {
+                                isLastAi = true;
+                                if (!window.typedMessages.has(data.docId)) {
+                                    window.typedMessages.add(data.docId);
+                                    textSpan.classList.add('typing-cursor');
+                                    textSpan.innerText = '';
+                                    
+                                    // Hide actions while typing!
+                                    actionsContainer.classList.add('hidden');
+                                    window.activeActionsEl = actionsContainer;
+
+                                    let i = 0;
+                                    window.isThinking = false; 
+                                    window.isGenerating = true; 
+                                    updateSendBtnState();
+                                    
+                                    window.activeTypeWriter = setInterval(() => {
+                                        if (i < data.text.length) {
+                                            textSpan.innerText += data.text.charAt(i);
+                                            i++;
+                                            chatFlow.scrollTo({ top: chatFlow.scrollHeight });
+                                        } else {
+                                            clearInterval(window.activeTypeWriter);
+                                            window.activeTypeWriter = null;
+                                            textSpan.classList.remove('typing-cursor');
+                                            
+                                            // Unhide actions instantly when finished!
+                                            actionsContainer.classList.remove('hidden');
+                                            window.activeActionsEl = null;
+
+                                            window.isGenerating = false;
+                                            updateSendBtnState();
+                                        }
+                                    }, 15); 
+                                } else {
+                                    textSpan.innerText = data.text; 
+                                }
                             } else {
                                 textSpan.innerText = data.text; 
                             }
@@ -1540,7 +1644,9 @@
                         }
                     }
                     
-                    row.appendChild(bubble);
+                    wrapper.appendChild(bubble);
+                    if(actionsContainer) wrapper.appendChild(actionsContainer);
+                    row.appendChild(wrapper);
                     messagesContainer.appendChild(row);
                 });
 
@@ -1555,6 +1661,14 @@
 
                 updateThinkingIndicator();
                 updateSendBtnState();
+
+                // NEW: Perfect scroll to bottom on historical chat load
+                setTimeout(() => {
+                    chatFlow.scrollTo({
+                        top: chatFlow.scrollHeight,
+                        behavior: initialLoad ? 'auto' : 'smooth'
+                    });
+                }, 150);
             });
         }
 
