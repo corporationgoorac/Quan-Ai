@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quan-ai-v2'; // CHANGED: Bumping to v2 forces the cache to clear!
+const CACHE_NAME = 'quan-ai-v3'; // CHANGED: Bumping to v2 forces the cache to clear!
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
