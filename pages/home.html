@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0a0c14">
     <title>Quan AI</title>
     <link rel="manifest" href="../manifest.json">
@@ -18,15 +18,22 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        body, html {
-            width: 100%;
-            height: 100%;
+        /* PERFECT VIEWPORT LOCK FROM GROUPCHAT.HTML */
+        html, body {
+            height: 100vh !important; 
             height: 100dvh !important;
+            width: 100vw !important;
+            overflow: hidden !important;
             background-color: #0a0c14;
             color: #ffffff;
             font-family: 'Inter', -apple-system, system-ui, sans-serif;
-            overflow: hidden;
-            position: relative;
+            position: fixed !important; 
+            left: 0 !important; 
+            top: 0 !important;
+            overscroll-behavior: none !important;
+            touch-action: none;
+            display: flex !important;
+            flex-direction: column !important;
         }
 
         .no-select {
@@ -44,20 +51,21 @@
            2. HEADER (Top Navigation)
            ========================================================================== */
         header {
+            position: absolute !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            right: 0 !important;
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 15px 20px;
+            padding-top: calc(env(safe-area-inset-top) + 15px);
             background: rgba(10, 12, 20, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            border-bottom: none !important;
-            position: absolute;
-            position: fixed !important;
-            top: 0;
-            width: 100%;
-            z-index: 100;
+            z-index: 2000 !important;
+            flex-shrink: 0;
         }
 
         .header-left {
@@ -116,7 +124,7 @@
             height: 100%;
             background: #0d0f1a;
             border-right: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 200;
+            z-index: 3000;
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
             flex-direction: column;
@@ -177,7 +185,6 @@
             border-left: 3px solid #8a2be2;
         }
 
-        /* Sidebar Overlay */
         #sidebar-overlay {
             position: absolute;
             top: 0;
@@ -186,7 +193,7 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(2px);
-            z-index: 150;
+            z-index: 2500;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
@@ -201,13 +208,15 @@
            4. MAIN CONTENT & WELCOME SCREEN
            ========================================================================== */
         main {
-            height: 100%;
+            flex: 1 !important;
             width: 100%;
-            padding-top: 65px;
-            padding-bottom: 90px;
-            display: flex;
-            flex-direction: column;
+            padding-top: calc(75px + env(safe-area-inset-top)) !important; 
+            padding-bottom: 10px !important;
+            display: flex !important;
+            flex-direction: column !important;
             position: relative;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
         }
 
         #welcome-screen {
@@ -282,19 +291,16 @@
         }
 
         /* ==========================================================================
-           5. CHAT MESSAGES AREA (UPDATED FOR IMAGES)
+           5. CHAT MESSAGES AREA 
            ========================================================================== */
         #messages-container {
-            flex: 1;
-            overflow-y: auto;
+            flex-grow: 1 !important;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 20px;
             scroll-behavior: smooth;
         }
-
-        #messages-container::-webkit-scrollbar { width: 0px; }
 
         .message-row {
             display: flex;
@@ -334,33 +340,105 @@
         }
 
         /* ==========================================================================
-           6. CAPSULE INPUT AREA (UPDATED WITH IMAGE PREVIEW CSS)
+           6. FLAGSHIP CAPSULE INPUT AREA (IMPORTED FROM GROUPCHAT.HTML)
            ========================================================================== */
-        #input-wrapper {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 700px;
+        .input-area-container {
+            background: transparent;
+            padding-bottom: env(safe-area-inset-bottom, 10px);
+            width: 100%;
+            z-index: 1000;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .input-area {
+            margin: 12px 16px;
+            padding: 4px 8px;
             display: flex;
             align-items: flex-end;
+            gap: 8px;
+            background: rgba(30, 30, 36, 0.85);
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 -2px 15px rgba(138, 43, 226, 0.15), 0 8px 25px rgba(0,0,0,0.4);
+            transform: scale(0.96);
+            transform-origin: bottom center;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            touch-action: none !important;
+        }
+
+        .input-area.focused {
+            margin: 8px 12px;
+            transform: scale(1);
+            border-radius: 26px;
+            background: rgba(25, 25, 35, 0.95);
+            border-color: #8a2be2;
+            box-shadow: 0 -2px 20px rgba(138, 43, 226, 0.3), 0 8px 25px rgba(138, 43, 226, 0.25);
+        }
+
+        .input-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-height: 40px;
+        }
+
+        #chat-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 8px 4px;
+            font-size: 1.05rem;
+            resize: none;
+            max-height: 120px;
+            outline: none;
+            font-family: inherit;
+            line-height: 1.4;
+            overscroll-behavior-y: contain;
+        }
+
+        #chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .action-btn {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            padding: 8px 15px;
-            backdrop-filter: blur(15px);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 50;
+            border-radius: 50%;
+            color: var(--accent, #8a2be2);
+            cursor: pointer;
+            height: 38px;
+            width: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: flex-end;
+            margin-bottom: 3px;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
+            border: none;
         }
 
-        #input-wrapper.focused {
-            width: 95%;
-            background: rgba(20, 22, 35, 0.9);
-            border-color: rgba(138, 43, 226, 0.6);
-            box-shadow: 0 0 25px rgba(138, 43, 226, 0.25), 0 0 10px rgba(255, 69, 0, 0.1);
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
         }
 
+        #send-btn {
+            display: none; /* Hide by default, show when active */
+            background: linear-gradient(135deg, #8a2be2, #ff4500);
+            color: white;
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0);
+        }
+        
+        #send-btn.active {
+            display: flex;
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+            transform: scale(1.05);
+        }
+
+        /* Image Preview Popup Container */
         #image-preview-container {
             display: none; 
             position: absolute; 
@@ -377,68 +455,10 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        #chat-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #ffffff;
-            font-size: 1rem;
-            font-family: inherit;
-            padding: 10px 5px;
-            max-height: 120px;
-            resize: none;
-            outline: none;
-            overflow-y: auto;
-            line-height: 1.4;
-        }
-
-        #chat-input::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .input-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding-bottom: 5px;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            padding: 8px;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        #send-btn {
-            color: #8a2be2;
-        }
-        
-        #send-btn.active {
-            color: #ff4500;
-            background: rgba(255, 69, 0, 0.1);
-        }
-
         @keyframes float {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
             100% { transform: translateY(0px); }
-        }
-
-        @media (max-width: 600px) {
-            .suggestions-grid { grid-template-columns: 1fr; }
-            #input-wrapper { width: 95%; bottom: 15px; }
-            #input-wrapper.focused { width: 98%; }
         }
 
         /* ==========================================================================
@@ -456,7 +476,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 20px;
-            z-index: 1000;
+            z-index: 4000;
             border-bottom: 1px solid rgba(138, 43, 226, 0.3);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
             transform: translateY(-100%);
@@ -529,156 +549,6 @@
             padding: 4px;
             cursor: pointer;
         }
-
-        /* ==========================================================================
-           8. Viewport Lock & Professional Capsule Overrides
-           ========================================================================== */
-        body {
-            position: fixed !important;
-            width: 100vw !important;
-        }
-
-        #input-wrapper {
-            position: fixed !important; 
-            background: rgba(30, 30, 36, 0.85) !important; 
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
-            border-radius: 26px !important;
-            padding: 6px 16px !important;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
-        }
-
-        #input-wrapper.focused {
-            background: rgba(35, 35, 42, 0.98) !important;
-            border-color: rgba(138, 43, 226, 0.5) !important;
-            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.4), 0 10px 40px rgba(0, 0, 0, 0.8) !important;
-            width: 92% !important;
-        }
-
-        #chat-input {
-            padding: 12px 8px !important;
-            font-size: 1.05rem !important;
-        }
-
-        /* ==========================================================================
-           9. FINAL POLISH
-           ========================================================================== */
-        html, body {
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            overscroll-behavior: none !important; 
-        }
-
-        main {
-            height: calc(100% - 130px) !important; 
-            overflow-y: auto !important;
-            -webkit-overflow-scrolling: touch !important; 
-            padding-bottom: 20px !important; 
-        }
-
-        #input-wrapper {
-            position: absolute !important;
-            bottom: 20px !important;
-            background: #1a1a24 !important; 
-            border: 1px solid rgba(255, 255, 255, 0.05) !important;
-            border-radius: 40px !important; 
-            padding: 6px 8px 6px 20px !important; 
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-            align-items: center !important; 
-        }
-
-        #input-wrapper.focused {
-            background: #1f1f2e !important;
-            border-color: rgba(138, 43, 226, 0.8) !important;
-            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.6), 0 15px 50px rgba(0, 0, 0, 0.9) !important;
-            transform: translateX(-50%) translateY(-5px) !important; 
-            bottom: 20px !important; 
-        }
-
-        #chat-input {
-            padding: 14px 10px !important;
-            font-size: 1.05rem !important;
-            color: #ffffff !important;
-            margin-right: 5px !important;
-        }
-
-        .action-btn {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border-radius: 50% !important;
-            width: 42px !important;
-            height: 42px !important;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        }
-
-        #send-btn.active {
-            background: linear-gradient(135deg, #8a2be2, #ff4500) !important;
-            color: white !important;
-            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4) !important;
-            transform: scale(1.05) !important;
-        }
-
-        /* ==========================================================================
-           10. GroupChat.html Overrides
-           ========================================================================== */
-        body {
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important; 
-        }
-
-        header {
-            position: relative !important; 
-            flex-shrink: 0 !important;
-            z-index: 100 !important;
-        }
-
-        main {
-            flex-grow: 1 !important; 
-            position: relative !important;
-            height: auto !important; 
-            padding-top: 0 !important; 
-            padding-bottom: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important; 
-        }
-
-        #messages-container {
-            flex-grow: 1 !important;
-            overflow-y: auto !important;
-            padding-bottom: 100px !important; 
-        }
-
-        #input-wrapper {
-            position: absolute !important;
-            bottom: 20px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            width: 95% !important;
-            max-width: 800px !important;
-            z-index: 50 !important;
-            background-color: #1a1a1a !important;
-            border-radius: 30px !important;
-            padding: 8px 12px !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
-            align-items: center !important;
-            border: 1px solid #333 !important;
-        }
-        
-        #input-wrapper.focused {
-             transform: translateX(-50%) !important;
-             border-color: #8a2be2 !important;
-             box-shadow: 0 0 15px rgba(138, 43, 226, 0.4) !important;
-        }
-
-        .input-actions {
-            padding-bottom: 0 !important; 
-        }
-        
-        #welcome-screen {
-            z-index: 5 !important; 
-        }
     </style>
 </head>
 <body>
@@ -714,7 +584,7 @@
             </div>
     </aside>
 
-    <header class="no-select">
+    <header class="no-select" id="chat-header">
         <div class="header-left">
             <button class="menu-btn" id="open-sidebar-btn">
                 <span class="material-symbols-rounded">menu</span>
@@ -724,7 +594,7 @@
         <img src="" alt="Profile" class="profile-pic" id="header-profile-pic" style="display: none;">
     </header>
 
-    <main>
+    <main id="chat-flow">
         
         <div id="welcome-screen">
             <img src="../images/icon.png" alt="Quan AI Logo" class="center-logo no-select">
@@ -755,7 +625,8 @@
 
     </main>
 
-    <div id="input-wrapper">
+    <div class="input-area-container">
+        
         <div id="image-preview-container">
             <img id="image-preview" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
             <button id="remove-image-btn" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
@@ -764,17 +635,20 @@
         </div>
 
         <input type="file" id="image-upload" accept="image/*" style="display: none;">
-        <button class="action-btn" id="attach-btn" title="Attach Image">
-            <span class="material-symbols-rounded">image</span>
-        </button>
+        
+        <div class="input-area" id="input-capsule">
+            <button class="action-btn" id="attach-btn" title="Attach Image">
+                <span class="material-symbols-rounded">image</span>
+            </button>
 
-        <button class="action-btn" title="Voice Input">
-            <span class="material-symbols-rounded">mic</span>
-        </button>
-        
-        <textarea id="chat-input" placeholder="Ask Quan anything..." rows="1"></textarea>
-        
-        <div class="input-actions">
+            <button class="action-btn" id="mic-toggle-btn" title="Voice Input">
+                <span class="material-symbols-rounded">mic</span>
+            </button>
+            
+            <div class="input-box">
+                <textarea id="chat-input" placeholder="Ask Quan anything..." rows="1"></textarea>
+            </div>
+            
             <button class="action-btn" id="send-btn" title="Send Message">
                 <span class="material-symbols-rounded">send</span>
             </button>
@@ -782,17 +656,18 @@
     </div>
 
     <script type="module">
-        // NEW: Imported serverTimestamp to fix the UI sorting bug completely!
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // DOM Elements
         const chatInput = document.getElementById('chat-input');
-        const inputWrapper = document.getElementById('input-wrapper');
+        const inputCapsule = document.getElementById('input-capsule');
         const welcomeScreen = document.getElementById('welcome-screen');
         const messagesContainer = document.getElementById('messages-container');
+        const chatFlow = document.getElementById('chat-flow');
         const sendBtn = document.getElementById('send-btn');
+        const micBtn = document.getElementById('mic-toggle-btn');
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         const openSidebarBtn = document.getElementById('open-sidebar-btn');
@@ -850,7 +725,33 @@
         });
 
         /* ==========================================================================
-           ADDED: IMAGE COMPRESSION LOGIC (Prevents Firebase 1MB crash)
+           VIEWPORT LOCK LOGIC (From GroupChat.html)
+           ========================================================================== */
+        function lockViewportAndHeader() {
+            const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            document.body.style.height = vh + 'px';
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            document.body.style.top = '0px';
+            
+            if (messagesContainer && messagesContainer.children.length > 0) {
+                chatFlow.scrollTo({
+                    top: chatFlow.scrollHeight,
+                    behavior: 'auto'
+                });
+            }
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', lockViewportAndHeader);
+            window.visualViewport.addEventListener('scroll', lockViewportAndHeader);
+        }
+        window.addEventListener('resize', lockViewportAndHeader);
+        window.addEventListener('scroll', lockViewportAndHeader, { passive: true });
+
+        /* ==========================================================================
+           IMAGE COMPRESSION LOGIC
            ========================================================================== */
         attachBtn.addEventListener('click', () => {
             imageUpload.click();
@@ -861,11 +762,10 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    // Compress the image before saving so it doesn't crash Firestore
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800; // Perfect size for Groq AI
+                        const MAX_WIDTH = 800; 
                         const scaleSize = MAX_WIDTH / img.width;
                         canvas.width = MAX_WIDTH;
                         canvas.height = img.height * scaleSize;
@@ -873,12 +773,13 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         
-                        // Convert back to a tiny Base64 string
                         selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.7); 
                         
                         imagePreview.src = selectedImageBase64;
                         imagePreviewContainer.style.display = 'block'; 
+                        
                         sendBtn.classList.add('active'); 
+                        micBtn.style.display = 'none';
                     }
                     img.src = event.target.result;
                 };
@@ -893,11 +794,12 @@
             imageUpload.value = ''; 
             if (chatInput.value.trim().length === 0) {
                 sendBtn.classList.remove('active');
+                micBtn.style.display = 'flex';
             }
         });
 
         /* ==========================================================================
-           2. UI INTERACTIONS 
+           UI INTERACTIONS 
            ========================================================================== */
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
@@ -905,26 +807,35 @@
             
             if (this.value.trim().length > 0 || selectedImageBase64) {
                 sendBtn.classList.add('active');
+                micBtn.style.display = 'none';
             } else {
                 sendBtn.classList.remove('active');
+                micBtn.style.display = 'flex';
             }
+            
+            // Auto scroll slightly when typing long messages
+            chatFlow.scrollTo({ top: chatFlow.scrollHeight });
         });
 
         chatInput.addEventListener('focus', () => {
-            inputWrapper.classList.add('focused');
+            inputCapsule.classList.add('focused');
             if (messagesContainer.children.length === 0) {
                 welcomeScreen.classList.add('hidden');
             }
+            // Trigger viewport lock immediately when keyboard rises
+            setTimeout(lockViewportAndHeader, 50);
+            setTimeout(lockViewportAndHeader, 300);
         });
 
         chatInput.addEventListener('blur', () => {
             if (chatInput.value.trim() === '' && !selectedImageBase64) {
-                inputWrapper.classList.remove('focused');
+                inputCapsule.classList.remove('focused');
                 if (messagesContainer.children.length === 0) {
                     welcomeScreen.classList.remove('hidden');
                     chatInput.style.height = 'auto'; 
                 }
             }
+            setTimeout(lockViewportAndHeader, 100);
         });
 
         window.fillInput = (text) => {
@@ -934,7 +845,7 @@
         };
 
         /* ==========================================================================
-           3. SIDEBAR NAVIGATION 
+           SIDEBAR NAVIGATION 
            ========================================================================== */
         const toggleSidebar = () => {
             sidebar.classList.toggle('open');
@@ -966,8 +877,9 @@
             welcomeScreen.classList.remove('hidden');
             chatInput.value = '';
             chatInput.style.height = 'auto';
-            inputWrapper.classList.remove('focused');
+            inputCapsule.classList.remove('focused');
             sendBtn.classList.remove('active');
+            micBtn.style.display = 'flex';
             
             selectedImageBase64 = null;
             imagePreviewContainer.style.display = 'none';
@@ -981,7 +893,7 @@
         });
 
         /* ==========================================================================
-           4. CHAT LOGIC - FIXED SORTING & UI FLICKER
+           CHAT LOGIC (SEND & DB SYNC)
            ========================================================================== */
         
         async function handleSend() {
@@ -993,15 +905,13 @@
             chatInput.value = '';
             chatInput.style.height = 'auto';
             sendBtn.classList.remove('active');
+            micBtn.style.display = 'flex';
             welcomeScreen.classList.add('hidden'); 
             
             imagePreviewContainer.style.display = 'none';
             imagePreview.src = '';
             selectedImageBase64 = null;
             imageUpload.value = '';
-
-            // Note: Optimistic manual render removed here to prevent double bubbles!
-            // The onSnapshot listener below will draw it perfectly.
 
             try {
                 if (!currentChatId) {
@@ -1011,7 +921,6 @@
                     let chatTitle = text.length > 25 ? text.substring(0, 25) + '...' : text;
                     if (!chatTitle && currentImage) chatTitle = "Image Upload";
                     
-                    // FIXED: Now using serverTimestamp so it matches the AI backend perfectly
                     await setDoc(chatDocRef, {
                         title: chatTitle,
                         updatedAt: serverTimestamp(),
@@ -1027,7 +936,6 @@
                 const path = `users/${currentUser.uid}/chats/${currentChatId}/messages`;
                 const messagesRef = collection(db, path);
 
-                // FIXED: Now using serverTimestamp so the chat never collapses again!
                 const messagePayload = {
                     text: text,
                     role: "user",
@@ -1057,7 +965,7 @@
         });
 
         /* ==========================================================================
-           5. DATABASE LISTENERS - FIXED FOR LOCAL TIMESTAMP NULL VALUES
+           DATABASE LISTENERS
            ========================================================================== */
         
         function listenToChat(chatId) {
@@ -1072,7 +980,7 @@
                 let messagesList = [];
                 snapshot.forEach((doc) => messagesList.push(doc.data()));
 
-                // Handle local writes temporarily having a 'null' timestamp by forcing them to the bottom
+                // Sort fallback for local writes lacking instant server timestamps
                 messagesList.sort((a, b) => {
                     const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Infinity;
                     const timeB = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp) : Infinity;
@@ -1101,8 +1009,8 @@
                     messagesContainer.appendChild(row);
                 });
 
-                messagesContainer.scrollTo({
-                    top: messagesContainer.scrollHeight,
+                chatFlow.scrollTo({
+                    top: chatFlow.scrollHeight,
                     behavior: 'smooth'
                 });
             });
@@ -1215,14 +1123,6 @@
             deferredPrompt = null;
             console.log('[Quan AI] PWA was successfully installed');
         });
-    </script>
-
-    <script>
-        if (window.visualViewport) {
-            const viewport = window.visualViewport;
-            const body = document.body;
-            viewport.addEventListener('resize', () => {});
-        }
     </script>
 </body>
 </html>
