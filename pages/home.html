@@ -32,7 +32,7 @@
             scrollbar-width: none;  /* Firefox */
         }
 
-        /* PERFECT VIEWPORT LOCK FROM GROUPCHAT.HTML */
+        /* PERFECT VIEWPORT LOCK */
         html, body {
             height: 100vh !important; 
             height: 100dvh !important;
@@ -45,11 +45,10 @@
             left: 0 !important; 
             top: 0 !important;
             overscroll-behavior: none !important;
-            overscroll-behavior-y: none !important; /* NEW: Kills pull-to-refresh loading bar on Android/iOS */
+            overscroll-behavior-y: none !important; 
             touch-action: none;
             margin: 0;
             padding: 0;
-            /* NEW: Global Disable Copy/Paste */
             -webkit-user-select: none !important;
             user-select: none !important;
         }
@@ -94,8 +93,7 @@
             background: rgba(10, 12, 20, 0.85);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            border-bottom: none !important; /* UPDATED: Removed border per your request */
+            border-bottom: none !important; 
             z-index: 2000 !important;
             flex-shrink: 0;
         }
@@ -327,11 +325,12 @@
         }
 
         /* ==========================================================================
-           5. CHAT MESSAGES AREA (UPDATED FOR GEMINI FULL-WIDTH STYLE)
+           5. CHAT MESSAGES AREA
            ========================================================================== */
         #messages-container {
             flex-grow: 1 !important;
-            padding: 20px 10px; 
+            /* NEW: Massive padding bottom allows the user message to scroll to the top! */
+            padding: 20px 10px 50vh 10px; 
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -347,21 +346,18 @@
         .message-row.user { justify-content: flex-end; }
         .message-row.ai { justify-content: flex-start; }
 
-        /* Wrapper to hold bubble and Gemini action buttons together */
         .message-wrapper {
             display: flex;
             flex-direction: column;
             max-width: 90%; 
         }
         
-        /* USER STYLE: Stays as a nice premium bubble on the right */
         .message-wrapper.user { 
             align-items: flex-end; 
             margin-left: auto;
             max-width: 85%;
         }
         
-        /* AI STYLE: Gemini style full width, no background bubble */
         .message-wrapper.ai { 
             align-items: flex-start; 
             max-width: 100%;
@@ -369,7 +365,7 @@
         }
 
         .bubble {
-            font-size: 1.05rem; /* slightly larger for readability */
+            font-size: 1.05rem; 
             line-height: 1.6;
             word-wrap: break-word;
         }
@@ -389,7 +385,7 @@
             color: #f0f0f0;
             border-radius: 0; 
             box-shadow: none;
-            padding: 12px 0px 4px 0px; /* Top/bottom padding, no side padding to match left edge */
+            padding: 12px 0px 4px 0px; 
             width: 100%;
         }
 
@@ -400,7 +396,6 @@
             display: block;
         }
 
-        /* Gemini Style Action Buttons CSS */
         .message-actions {
             display: flex;
             gap: 8px;
@@ -436,6 +431,30 @@
             font-size: 18px;
         }
 
+        /* NEW: Beautiful Markdown Code Blocks */
+        .md-code {
+            background: rgba(20, 20, 30, 0.8);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-family: monospace;
+            display: block;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #a6accd;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .md-inline-code {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #ffb86c;
+        }
+
         /* ==========================================================================
            6. FLAGSHIP CAPSULE INPUT AREA 
            ========================================================================== */
@@ -447,37 +466,36 @@
             width: 100%;
             z-index: 1000;
             position: relative;
-            margin-top: auto; /* Pushes it to the very bottom */
+            margin-top: auto; 
             touch-action: pan-y !important;
         }
 
         .input-area {
-            margin: 12px 24px; /* Compressed small look by default */
-            padding: 6px 10px; /* Thicker and more elegant */
+            margin: 12px 24px; 
+            padding: 6px 10px; 
             display: flex;
             align-items: flex-end;
             gap: 8px;
-            background: rgba(18, 18, 24, 0.85); /* Richer dark glass background */
+            background: rgba(18, 18, 24, 0.85); 
             border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.08); /* More subtle, premium border */
+            border: 1px solid rgba(255, 255, 255, 0.08); 
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3); /* Cleaner resting shadow */
-            transform: scale(0.96); /* Physically smaller */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+            transform: scale(0.96); 
             transform-origin: bottom center;
             transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
             touch-action: none !important;
             position: relative;
         }
 
-        /* Expands beautifully when focused or when text is inside */
         .input-area:focus-within, .input-area.focused {
-            margin: 8px 12px; /* Expand full width */
-            transform: scale(1); /* Grow to full size */
-            border-radius: 28px; /* Slightly squarer on focus for typing area */
-            background: rgba(22, 22, 30, 0.98); /* Solid background on focus */
-            border-color: rgba(138, 43, 226, 0.6); /* Vibrant active border */
-            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.5); /* Ambient glow effect */
+            margin: 8px 12px; 
+            transform: scale(1); 
+            border-radius: 28px; 
+            background: rgba(22, 22, 30, 0.98); 
+            border-color: rgba(138, 43, 226, 0.6); 
+            box-shadow: 0 0 0 1px rgba(138, 43, 226, 0.2), 0 10px 40px rgba(0,0,0,0.5); 
         }
 
         .input-box {
@@ -487,7 +505,6 @@
             min-height: 40px;
         }
 
-        /* Allow copy-paste inside the input specifically */
         #chat-input {
             width: 100%;
             background: transparent;
@@ -582,7 +599,6 @@
             touch-action: none;
         }
 
-        /* Image Preview Popup Container */
         #image-preview-container {
             display: none; 
             position: absolute; 
@@ -1078,22 +1094,24 @@
         window.activeActionsEl = null; 
 
         /* ==========================================================================
-           NEW: CUSTOM MARKDOWN FORMATTER
+           NEW: ADVANCED MARKDOWN FORMATTER (WITH CODE BLOCKS)
            ========================================================================== */
         window.formatMarkdown = function(text) {
             if(!text) return "";
             let html = text
-                .replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-family:monospace;">$1</code>')
+                // Multi-line code block support
+                .replace(/```([\s\S]*?)```/g, '<code class="md-code">$1</code>')
+                // Inline code support
+                .replace(/`(.*?)`/g, '<span class="md-inline-code">$1</span>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/^### (.*$)/gim, '<h3 style="margin-top:16px; margin-bottom:8px; font-size:1.2rem; color:#fff;">$1</h3>')
-                .replace(/^## (.*$)/gim, '<h2 style="margin-top:18px; margin-bottom:10px; font-size:1.35rem; color:#fff;">$1</h2>')
-                .replace(/^# (.*$)/gim, '<h1 style="margin-top:20px; margin-bottom:12px; font-size:1.5rem; color:#fff;">$1</h1>');
-            
-            html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<li style="margin-left: 20px; margin-bottom: 6px;">$1</li>');
+                .replace(/^### (.*$)/gim, '<h3 style="margin-top:16px; margin-bottom:8px; font-size:1.1rem; color:#fff;">$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2 style="margin-top:18px; margin-bottom:10px; font-size:1.25rem; color:#fff;">$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1 style="margin-top:20px; margin-bottom:12px; font-size:1.4rem; color:#fff;">$1</h1>')
+                .replace(/^\s*[-*]\s+(.*$)/gim, '<li style="margin-left: 20px; margin-bottom: 6px;">$1</li>');
             
             html = html.split('\n').map(line => {
-                if (line.trim().startsWith('<h') || line.trim().startsWith('<li')) return line;
+                if (line.trim().startsWith('<h') || line.trim().startsWith('<li') || line.trim().startsWith('<code')) return line;
                 return line + '<br>';
             }).join('');
             
@@ -1444,8 +1462,13 @@
             }
         });
 
+        // ==========================================================================
+        // 0MS HISTORY GLITCH FIX
+        // ==========================================================================
         newChatBtn.addEventListener('click', () => {
             currentChatId = null;
+            
+            // Clean slate instantly
             messagesContainer.innerHTML = '';
             
             if (localStorage.getItem('quan_welcome_html_v2')) {
@@ -1480,6 +1503,9 @@
             if (confirmDelete) {
                 try {
                     await deleteDoc(doc(db, `users/${currentUser.uid}/chats/${selectedChatIdForModal}`));
+                    // Clear local cache for this deleted chat
+                    localStorage.removeItem('chat_html_' + selectedChatIdForModal);
+
                     if(currentChatId === selectedChatIdForModal) {
                         newChatBtn.click();
                     }
@@ -1576,7 +1602,7 @@
             }
         }
 
-        // NEW: Stop Bug Fixed! Flawlessly ends generation and reveals full text.
+        // STOP BUG FIXED: Flawlessly ends generation and reveals full text.
         sendBtn.addEventListener('click', (e) => {
             if (window.isGenerating) {
                 e.preventDefault(); 
@@ -1599,6 +1625,11 @@
                 window.isThinking = false;
                 updateThinkingIndicator();
                 updateSendBtnState();
+                
+                // Save stopped state to cache
+                if (currentChatId) {
+                    localStorage.setItem('chat_html_' + currentChatId, messagesContainer.innerHTML);
+                }
                 return;
             }
             handleSend();
@@ -1726,7 +1757,7 @@
                                             i += 2; // Type 2 chars per tick for better speed
                                             if(i > data.text.length) i = data.text.length;
                                             textSpan.innerHTML = window.formatMarkdown(data.text.substring(0, i));
-                                            // Auto-scroll disabled during typing per request
+                                            /* AUTO SCROLL DISABLED HERE PER REQUEST SO USER CAN READ WHILE TYPING */
                                         } else {
                                             clearInterval(window.activeTypeWriter);
                                             window.activeTypeWriter = null;
@@ -1738,6 +1769,9 @@
 
                                             window.isGenerating = false;
                                             updateSendBtnState();
+                                            
+                                            // Save to cache when done typing
+                                            localStorage.setItem('chat_html_' + chatId, messagesContainer.innerHTML);
                                         }
                                     }, 10); 
                                 } else {
@@ -1769,22 +1803,26 @@
                 updateThinkingIndicator();
                 updateSendBtnState();
 
+                // CACHE SAVER: Save the raw HTML if not actively typing
+                if (!window.isGenerating) {
+                    localStorage.setItem('chat_html_' + chatId, messagesContainer.innerHTML);
+                }
+
+                // NEW: GEMINI SCROLL BEHAVIOR
                 setTimeout(() => {
                     if (initialLoad) {
-                        chatFlow.scrollTo({
-                            top: chatFlow.scrollHeight,
-                            behavior: 'auto'
-                        });
+                        // If it's an old chat loading, we already snapped it during the click handler.
                     } else if (messagesList.length > 0 && messagesList[messagesList.length - 1].role === 'user') {
+                        // If user just sent a message, intelligently scroll that specific message to the top!
                         if (lastUserMessageEl) {
-                            const headerOffset = 75; 
+                            const headerOffset = 70; 
                             chatFlow.scrollTo({
                                 top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
                                 behavior: 'smooth'
                             });
                         }
                     }
-                }, 150);
+                }, 50);
             });
         }
 
@@ -1861,6 +1899,9 @@
                     chatEl.addEventListener('mouseup', cancelPress);
                     chatEl.addEventListener('mouseleave', cancelPress);
 
+                    // ==========================================================================
+                    // 0MS HISTORY GLITCH FIX
+                    // ==========================================================================
                     chatEl.onclick = (e) => {
                         if (isLongPressing) {
                             e.preventDefault();
@@ -1874,6 +1915,16 @@
                         chatEl.classList.add('active');
                         
                         window.isInitialChatLoad = true; 
+
+                        // INSTANT CACHE LOAD: Renders the chat instantly before Firebase even connects!
+                        const cachedHtml = localStorage.getItem('chat_html_' + chatId);
+                        if (cachedHtml) {
+                            messagesContainer.innerHTML = cachedHtml;
+                            chatFlow.scrollTop = chatFlow.scrollHeight; // Instant scroll to bottom
+                        } else {
+                            messagesContainer.innerHTML = '';
+                        }
+
                         listenToChat(chatId);
                         
                         if (window.innerWidth <= 768) {
@@ -1912,19 +1963,4 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            if (!isInstallDismissed) {
-                setTimeout(() => {
-                    installBanner.style.display = 'flex';
-                    void installBanner.offsetWidth; 
-                    installBanner.classList.add('visible');
-                }, 1000); 
-            }
-        });
-
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`[Quan AI] User response to install prompt: ${outcome}`);
-            deferredPrompt = null;
-            installBanner.classList
+            if (!isInstallDismiss
