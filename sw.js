@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quan-ai-dynamic-v3'; // Bumped to v3 to force the new strategy to activate
+const CACHE_NAME = 'quan-ai-dynamic-v33'; // Bumped to v3 to force the new strategy to activate
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
