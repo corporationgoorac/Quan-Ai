@@ -588,6 +588,18 @@
         .bubble strong { font-weight: bold; }
         .bubble em { font-style: italic; }
         .bubble pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+        
+        /* --- NEW CSS FOR TABLES, LINKS, & MISC MARKDOWN --- */
+        .bubble table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.95rem; display: block; overflow-x: auto; }
+        .bubble th, .bubble td { border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 12px; text-align: left; }
+        .bubble th { background-color: rgba(138, 43, 226, 0.15); font-weight: bold; color: #fff; }
+        .bubble tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.02); }
+        .bubble tr:hover { background-color: rgba(255, 255, 255, 0.05); }
+        .bubble a { color: #82aaff; text-decoration: none; }
+        .bubble a:hover { text-decoration: underline; }
+        .bubble img { max-width: 100%; border-radius: 8px; margin: 10px 0; }
+        .bubble hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; }
+        
         .hljs { background: transparent !important; padding: 0 !important; }
         /* ---------------------------------------- */
 
