@@ -633,7 +633,7 @@
             overscroll-behavior-y: contain;
             -webkit-user-select: auto !important;
             user-select: auto !important;
-            transition: height 0.15s ease-out; /* Makes resizing textarea much smoother! */
+            transition: height 0.0s ease-out; /* Changed to 0s to prevent layout shift jittering when sending */
         }
 
         #chat-input::placeholder { color: rgba(255, 255, 255, 0.4); }
@@ -2097,7 +2097,7 @@
                 }
 
                 // PERFECT SCROLLING FIX - UPGRADED FOR ZERO JUMP
-                const applyScrollLock = (behaviorOverride) => {
+                const applyScrollLock = () => {
                     if (initialLoad) {
                         if (lastUserMessageEl) {
                             const headerOffset = 70; 
@@ -2113,14 +2113,19 @@
                             const headerOffset = 70; 
                             chatFlow.scrollTo({
                                 top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
-                                behavior: behaviorOverride || 'smooth'
+                                behavior: 'smooth'
                             });
                         }
                     }
                 };
-                applyScrollLock('auto'); // Instant lock, avoids conflicting animations
-                setTimeout(() => applyScrollLock('auto'), 50); // Catch layout shift instantly
-                setTimeout(() => { applyScrollLock('smooth'); window.justSentPrompt = false; }, 150); // Final settle smooth
+                
+                // NEW FIX: Execute once after DOM layout settles to prevent animation conflicts and jitter
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        applyScrollLock();
+                        window.justSentPrompt = false;
+                    }, 100);
+                });
             });
         }
 
@@ -2250,34 +2255,3 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('../sw.js').then(registration => {
-                    console.log('[Quan AI] Service Worker active');
-                    
-                    registration.onupdatefound = () => {
-                        const installingWorker = registration.installing;
-                        installingWorker.onstatechange = () => {
-                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                window.showToast('New update available! Tap to reload.', 'update');
-                                document.getElementById('global-toast').onclick = () => window.location.reload();
-                            }
-                        };
-                    };
-                }).catch(error => {
-                    console.error('[Quan AI] SW fail:', error);
-                });
-            });
-        }
-    </script>
-
-    <script>
-        let deferredPrompt;
-        const installBanner = document.getElementById('install-banner');
-        const installBtn = document.getElementById('install-btn');
-        const closeInstallBtn = document.getElementById('close-install-btn');
-
-        const isInstallDismissed = localStorage.getItem('quan_install_dismissed');
-        if (!isInstallDismissed) {
-            // Install prompt logic goes here
-        }
-    </script>
-</body>
-</html>
