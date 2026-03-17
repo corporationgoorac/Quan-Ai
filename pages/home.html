@@ -1460,6 +1460,51 @@
         window.activeActionsEl = null; 
         window.justSentPrompt = false; 
 
+        // ==========================================================================
+        // PIPER TTS ENGINE & NATIVE FALLBACK GLOBALS
+        // ==========================================================================
+        window.currentAudioSource = null;
+        window.piperWorker = null;
+        window.piperIsReady = false;
+
+        try {
+            window.piperWorker = new Worker('../tts-worker.js');
+            window.piperWorker.onmessage = function(e) {
+                const response = e.data;
+                if (response.status === 'ready') window.piperIsReady = true;
+                if (response.status === 'success') window.playPiperAudio(response.audio);
+                if (response.status === 'error') window.fallbackTTS(response.originalText, response.fallbackLang);
+            };
+        } catch(e) {
+            console.warn("[Quan AI] Piper Worker failed to load. Falling back to native TTS.");
+        }
+
+        window.playPiperAudio = function(float32Array) {
+            if (window.currentAudioSource) {
+                try { window.currentAudioSource.stop(); } catch(e){}
+            }
+            window.speechSynthesis.cancel(); // Stop any native speech overlap
+            
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBuffer = audioContext.createBuffer(1, float32Array.length, 22050);
+            audioBuffer.getChannelData(0).set(float32Array);
+            
+            window.currentAudioSource = audioContext.createBufferSource();
+            window.currentAudioSource.buffer = audioBuffer;
+            window.currentAudioSource.connect(audioContext.destination);
+            window.currentAudioSource.start();
+        };
+
+        window.fallbackTTS = function(text, lang='en-US') {
+            if (window.currentAudioSource) {
+                try { window.currentAudioSource.stop(); window.currentAudioSource = null; } catch(e){}
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            window.speechSynthesis.speak(utterance);
+        };
+
         // 0ms Apply Cached Logo & Profile Pic
         const cachedLogo = localStorage.getItem('quan_logo_base64');
         if(cachedLogo) {
@@ -2502,8 +2547,29 @@
                             speakBtn.className = 'action-icon';
                             speakBtn.innerHTML = window.SVGS.volume_up;
                             speakBtn.onclick = () => {
+                                // Stop overlap
+                                if (window.currentAudioSource) { 
+                                    try { window.currentAudioSource.stop(); window.currentAudioSource = null; } catch(e){} 
+                                }
                                 window.speechSynthesis.cancel();
-                                window.speechSynthesis.speak(new SpeechSynthesisUtterance(data.text));
+
+                                // Lightning-fast heuristic language detection (Tamil Unicode Range)
+                                const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
+                                const voiceModel = isTamil ? 'ta_IN-kanmani-medium' : 'en_US-amy-medium';
+                                const fallbackLang = isTamil ? 'ta-IN' : 'en-US';
+
+                                if (window.piperWorker && window.piperIsReady) {
+                                    window.showToast('Generating Neural Voice...', 'default');
+                                    window.piperWorker.postMessage({
+                                        text: data.text,
+                                        voiceModel: voiceModel,
+                                        fallbackLang: fallbackLang,
+                                        originalText: data.text
+                                    });
+                                } else {
+                                    window.showToast('Playing Native Voice...', 'default');
+                                    window.fallbackTTS(data.text, fallbackLang);
+                                }
                                 window.vibrateLight();
                             };
 
@@ -3219,7 +3285,7 @@
            While visually abstracted in the UI above for performance on mobile devices, 
            this represents the structural capability of processing imageData arrays directly.
            ----------------------------------------------------------------------------------------- */
-           
+            
         const VisionEngine = {
             // Gaussian Blur Kernel (5x5)
             gaussianKernel: [
