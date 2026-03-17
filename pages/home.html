@@ -420,6 +420,13 @@
             -webkit-user-select: text !important;
         }
         
+        /* NEW AUDIO GLOW CSS EFFECT */
+        .playing-glow {
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.8), inset 0 0 10px rgba(138, 43, 226, 0.3) !important;
+            border: 1px solid rgba(138, 43, 226, 0.5) !important;
+            transition: all 0.3s ease-in-out;
+        }
+
         /* FIX: Prevents text selection from intercepting smooth scroll during generation */
         .bubble.generating {
             user-select: none !important;
@@ -1462,18 +1469,19 @@
         window.justSentPrompt = false; 
 
         // ==========================================================================
-        // PUTER.JS TTS ENGINE & NATIVE FALLBACK GLOBALS
+        // GOOGLE CLOUD TTS HACK & NATIVE FALLBACK GLOBALS (NO WORKER, NO API KEY)
         // ==========================================================================
-        window.currentAudioElement = null; // Used for Puter HTMLAudioElement
+        window.currentAudioElement = null; // Used for <audio> tags
         window.isNativePlaying = false;
         window.activeSpeakBtn = null; // Track the currently playing button
+        window.activeBubble = null; // Track bubble to remove glow
 
         // Old worker variables kept to respect "don't remove lines" rule
         window.currentAudioSource = null;
         window.piperWorker = null;
         window.piperIsReady = false;
 
-        window.playNativeFallback = function(text, lang, btn) {
+        window.playNativeFallback = function(text, lang, btn, bubble) {
             window.speechSynthesis.cancel();
             window.isNativePlaying = true;
             const utterance = new SpeechSynthesisUtterance(text);
@@ -1484,12 +1492,20 @@
                     window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
                     window.activeSpeakBtn = null;
                 }
+                if (window.activeBubble === bubble) {
+                    window.activeBubble.classList.remove('playing-glow');
+                    window.activeBubble = null;
+                }
             };
             utterance.onerror = () => {
                 window.isNativePlaying = false;
                 if (window.activeSpeakBtn === btn) {
                     window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
                     window.activeSpeakBtn = null;
+                }
+                if (window.activeBubble === bubble) {
+                    window.activeBubble.classList.remove('playing-glow');
+                    window.activeBubble = null;
                 }
             };
             window.speechSynthesis.speak(utterance);
@@ -2537,15 +2553,21 @@
                             speakBtn.className = 'action-icon';
                             speakBtn.innerHTML = window.SVGS.volume_up;
                             speakBtn.onclick = () => {
+                                const bubbleEl = speakBtn.closest('.bubble');
+
                                 // Check if this specific button is already the active playing one
                                 if (window.activeSpeakBtn === speakBtn) {
                                     // Stop audio
                                     if (window.currentAudioElement) { 
-                                        try { window.currentAudioElement.pause(); window.currentAudioElement = null; } catch(e){} 
+                                        try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; window.currentAudioElement = null; } catch(e){} 
                                     }
                                     if (window.isNativePlaying) {
                                         window.speechSynthesis.cancel();
                                         window.isNativePlaying = false;
+                                    }
+                                    if (window.activeBubble) {
+                                        window.activeBubble.classList.remove('playing-glow');
+                                        window.activeBubble = null;
                                     }
                                     
                                     // Revert icon and clear state
@@ -2556,58 +2578,72 @@
 
                                 // Stop any overlap from OTHER buttons
                                 if (window.currentAudioElement) { 
-                                    try { window.currentAudioElement.pause(); window.currentAudioElement = null; } catch(e){} 
+                                    try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; window.currentAudioElement = null; } catch(e){} 
                                 }
                                 if (window.isNativePlaying) {
                                     window.speechSynthesis.cancel();
                                     window.isNativePlaying = false;
                                 }
 
-                                // Reset previous active button's icon if one exists
+                                // Reset previous active button's icon and bubble glow if one exists
                                 if (window.activeSpeakBtn) {
                                     window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                                }
+                                if (window.activeBubble) {
+                                    window.activeBubble.classList.remove('playing-glow');
                                 }
 
                                 // Set this button as active and change icon to stop/pause
                                 window.activeSpeakBtn = speakBtn;
                                 speakBtn.innerHTML = window.SVGS.stop_circle;
+                                window.activeBubble = bubbleEl;
+                                bubbleEl.classList.add('playing-glow');
 
                                 // Lightning-fast heuristic language detection (Tamil & Telugu Unicode Ranges)
                                 const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
                                 const isTelugu = /[\u0C00-\u0C7F]/.test(data.text);
 
                                 let fallbackLang = 'en-US';
+                                let googleLang = 'en';
                                 if (isTamil) {
                                     fallbackLang = 'ta-IN';
+                                    googleLang = 'ta';
                                 } else if (isTelugu) {
                                     fallbackLang = 'te-IN';
+                                    googleLang = 'te';
                                 }
 
                                 window.vibrateLight();
 
-                                // Use Puter.js if available, else Native Fallback
+                                // Use Google Translate TTS (No API Key) for short texts, else Native Fallback
                                 try {
-                                    if (typeof puter !== 'undefined' && puter.ai) {
-                                        puter.ai.txt2speech(data.text, fallbackLang).then((audio) => {
-                                            window.currentAudioElement = audio;
-                                            audio.play();
-                                            audio.onended = () => {
-                                                if (window.activeSpeakBtn === speakBtn) {
-                                                    window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
-                                                    window.activeSpeakBtn = null;
-                                                }
-                                            };
-                                            audio.onerror = () => {
-                                                window.playNativeFallback(data.text, fallbackLang, speakBtn);
-                                            };
-                                        }).catch((err) => {
-                                            window.playNativeFallback(data.text, fallbackLang, speakBtn);
+                                    if (data.text.length <= 200) {
+                                        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${googleLang}&q=${encodeURIComponent(data.text)}`;
+                                        const audio = new Audio(url);
+                                        window.currentAudioElement = audio;
+                                        
+                                        audio.play().catch(e => {
+                                            window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
                                         });
+
+                                        audio.onended = () => {
+                                            if (window.activeSpeakBtn === speakBtn) {
+                                                window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                                                window.activeSpeakBtn = null;
+                                            }
+                                            if (window.activeBubble === bubbleEl) {
+                                                window.activeBubble.classList.remove('playing-glow');
+                                                window.activeBubble = null;
+                                            }
+                                        };
+                                        audio.onerror = () => {
+                                            window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
+                                        };
                                     } else {
-                                        window.playNativeFallback(data.text, fallbackLang, speakBtn);
+                                        window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
                                     }
                                 } catch(e) {
-                                    window.playNativeFallback(data.text, fallbackLang, speakBtn);
+                                    window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
                                 }
                             };
 
