@@ -1466,9 +1466,11 @@
         window.currentAudioSource = null;
         window.piperWorker = null;
         window.piperIsReady = false;
+        window.activeSpeakBtn = null; // NEW: Track the currently playing button
 
         try {
-            window.piperWorker = new Worker('../tts-worker.js', { type: 'module' });
+            // Removed { type: 'module' } to support the standard fetch worker you provided
+            window.piperWorker = new Worker('../tts-worker.js');
             window.piperWorker.onmessage = function(e) {
                 const response = e.data;
                 if (response.status === 'ready') window.piperIsReady = true;
@@ -1479,20 +1481,36 @@
             console.warn("[Quan AI] Piper Worker failed to load. Falling back to native TTS.");
         }
 
-        window.playPiperAudio = function(float32Array) {
+        window.playPiperAudio = async function(arrayBuffer) {
             if (window.currentAudioSource) {
                 try { window.currentAudioSource.stop(); } catch(e){}
             }
             window.speechSynthesis.cancel(); // Stop any native speech overlap
             
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const audioBuffer = audioContext.createBuffer(1, float32Array.length, 22050);
-            audioBuffer.getChannelData(0).set(float32Array);
-            
-            window.currentAudioSource = audioContext.createBufferSource();
-            window.currentAudioSource.buffer = audioBuffer;
-            window.currentAudioSource.connect(audioContext.destination);
-            window.currentAudioSource.start();
+            try {
+                // Decode the MP3 array buffer sent by the new worker
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                window.currentAudioSource = audioContext.createBufferSource();
+                window.currentAudioSource.buffer = audioBuffer;
+                window.currentAudioSource.connect(audioContext.destination);
+                
+                // Reset icon when audio finishes playing naturally
+                window.currentAudioSource.onended = () => {
+                    if (window.activeSpeakBtn) {
+                        window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                        window.activeSpeakBtn = null;
+                    }
+                };
+                
+                window.currentAudioSource.start();
+            } catch(error) {
+                console.error("Audio decode error:", error);
+                if (window.activeSpeakBtn) {
+                    window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                    window.activeSpeakBtn = null;
+                }
+            }
         };
 
         window.fallbackTTS = function(text, lang='en-US') {
@@ -1502,6 +1520,13 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = lang;
+            // Reset icon when native speech finishes
+            utterance.onend = () => {
+                if (window.activeSpeakBtn) {
+                    window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                    window.activeSpeakBtn = null;
+                }
+            };
             window.speechSynthesis.speak(utterance);
         };
 
@@ -2547,11 +2572,34 @@
                             speakBtn.className = 'action-icon';
                             speakBtn.innerHTML = window.SVGS.volume_up;
                             speakBtn.onclick = () => {
-                                // Stop overlap
+                                // Check if this specific button is already the active playing one
+                                if (window.activeSpeakBtn === speakBtn) {
+                                    // Stop audio
+                                    if (window.currentAudioSource) { 
+                                        try { window.currentAudioSource.stop(); window.currentAudioSource = null; } catch(e){} 
+                                    }
+                                    window.speechSynthesis.cancel();
+                                    
+                                    // Revert icon and clear state
+                                    speakBtn.innerHTML = window.SVGS.volume_up;
+                                    window.activeSpeakBtn = null;
+                                    return; // Exit out, don't play again
+                                }
+
+                                // Stop any overlap from OTHER buttons
                                 if (window.currentAudioSource) { 
                                     try { window.currentAudioSource.stop(); window.currentAudioSource = null; } catch(e){} 
                                 }
                                 window.speechSynthesis.cancel();
+
+                                // Reset previous active button's icon if one exists
+                                if (window.activeSpeakBtn) {
+                                    window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                                }
+
+                                // Set this button as active and change icon to stop/pause
+                                window.activeSpeakBtn = speakBtn;
+                                speakBtn.innerHTML = window.SVGS.stop_circle;
 
                                 // Lightning-fast heuristic language detection (Tamil & Telugu Unicode Ranges)
                                 const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
@@ -2569,7 +2617,7 @@
                                 }
 
                                 if (window.piperWorker && window.piperIsReady) {
-                                    window.showToast('Generating Neural Voice...', 'default');
+                                    // window.showToast('Generating Neural Voice...', 'default');
                                     window.piperWorker.postMessage({
                                         text: data.text,
                                         voiceModel: voiceModel,
@@ -2577,7 +2625,7 @@
                                         originalText: data.text
                                     });
                                 } else {
-                                    window.showToast('Playing Native Voice...', 'default');
+                                    // window.showToast('Playing Native Voice...', 'default');
                                     window.fallbackTTS(data.text, fallbackLang);
                                 }
                                 window.vibrateLight();
