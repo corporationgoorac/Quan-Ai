@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Download Quan AI | From Goorac</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a0c14">
+    <link rel="apple-touch-icon" href="images/icon.png">
+
+    <style>
+        :root {
+            --bg: #0a0c14;
+            --surface: #141620;
+            --accent: #8a2be2; /* Quan Purple */
+            --accent-secondary: #ff4500; /* Quan Orange */
+            --vision-blue: #00d2ff;
+            --message-green: #27c93f;
+            --accent-dim: rgba(138, 43, 226, 0.15);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.6);
+            --danger: #ff5f56;
+            --gradient: linear-gradient(135deg, #8a2be2 0%, #ff4500 100%);
+        }
+
+        /* --- PROFESSIONAL RESET --- */
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            user-select: none; 
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at top center, #1a1525 0%, #0a0c14 70%);
+        }
+
+        /* --- HEADER --- */
+        header {
+            width: 100%;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 12, 20, 0.85);
+        }
+
+        .logo { 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: var(--gradient); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+
+        /* --- PLAY STORE STYLE HERO SECTION --- */
+        .hero {
+            padding: 40px 24px 20px;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .app-icon-container {
+            width: 90px;
+            height: 90px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .app-icon {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #000;
+            object-fit: cover;
+            box-shadow: 0 10px 30px rgba(138, 43, 226, 0.3);
+        }
+
+        .hero-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-dim);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(138, 43, 226, 0.3);
+        }
+
+        .dot { width: 6px; height: 6px; background: var(--accent-secondary); border-radius: 50%; box-shadow: 0 0 10px var(--accent-secondary); }
+
+        h1 { 
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            margin: 0; 
+            line-height: 1.2; 
+            letter-spacing: -0.5px; 
+            color: #ffffff;
+        }
+
+        .company-subtitle {
+            color: var(--accent);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .hero p { 
+            color: var(--text-dim); 
+            font-size: 0.95rem; 
+            margin-top: 8px; 
+            line-height: 1.5;
+            max-width: 450px;
+        }
+
+        /* --- PLAY STORE STYLE INSTALL SECTION --- */
+        .install-section {
+            width: 100%;
+            max-width: 800px;
+            padding: 0 24px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #install-btn {
+            background: var(--gradient);
+            color: #fff;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 30px; 
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: none; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(138, 43, 226, 0.3);
+            transition: transform 0.2s ease;
+        }
+        #install-btn:active { transform: scale(0.96); }
+
+        #update-btn {
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            color: #fff;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 30px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: none; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(0, 210, 255, 0.3);
+            transition: transform 0.2s ease;
+        }
+        #update-btn:active { transform: scale(0.96); }
+
+        /* --- SCREENSHOTS GALLERY --- */
+        .gallery-container {
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .gallery-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 16px;
+            padding: 10px 24px 20px;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none; 
+            -ms-overflow-style: none; 
+        }
+        
+        .gallery-scroll::-webkit-scrollbar { display: none; } 
+
+        .gallery-scroll img {
+            height: 400px; 
+            width: auto;
+            border-radius: 16px;
+            scroll-snap-align: center;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            background-color: var(--surface);
+            cursor: pointer; 
+        }
+
+        /* --- CENTERED INSTALL CARD --- */
+        .card {
+            width: 100%;
+            max-width: 800px;
+            background: transparent;
+            padding: 0 24px 60px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        /* --- FEATURES GRID --- */
+        .features {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            width: 100%;
+        }
+
+        @media (min-width: 600px) {
+            .features {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .feat-item {
+            text-align: left;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 20px;
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            transition: border-color 0.3s ease;
+        }
+        .feat-item:hover { border-color: rgba(138, 43, 226, 0.4); }
+
+        .feat-icon-ai { color: var(--accent); font-size: 1.4rem; }
+        .feat-icon-speed { color: var(--message-green); font-size: 1.4rem; }
+        .feat-icon-secure { color: #ffbd2e; font-size: 1.4rem; }
+        .feat-icon-voice { color: var(--accent-secondary); font-size: 1.4rem; }
+        .feat-icon-vision { color: var(--vision-blue); font-size: 1.4rem; }
+        
+        .feat-text b { display: block; color: #fff; font-size: 1.05rem; margin-bottom: 6px; font-weight: 600; }
+        .feat-text span { color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; }
+
+        /* --- PRIVACY --- */
+        .privacy-footer {
+            width: 100%;
+            padding: 60px 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .section-label { 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            color: var(--text-dim); 
+            font-weight: 800; 
+            letter-spacing: 3px; 
+            margin-bottom: 40px; 
+            display: block;
+        }
+
+        .privacy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            text-align: left;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .priv-card {
+            background: var(--surface);
+            padding: 24px;
+        }
+
+        .priv-card b { color: #fff; font-size: 0.9rem; display: block; margin-bottom: 8px; }
+        .priv-card small { color: var(--text-dim); font-size: 0.75rem; line-height: 1.5; display: block; }
+
+        /* --- iOS SPECIFIC --- */
+        .ios-notice {
+            display: none;
+            text-align: left;
+            background: var(--surface);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid var(--accent);
+            margin-bottom: 16px;
+        }
+        .ios-notice b { color: var(--accent); display: block; margin-bottom: 16px; font-size: 1.1rem; }
+        .ios-step { font-size: 0.95rem; color: #fff; margin: 16px 0; display: flex; gap: 12px; align-items: center; }
+        .ios-step i { color: var(--accent); font-style: normal; font-weight: bold; background: rgba(138, 43, 226, 0.2); width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8rem; }
+
+        /* --- FULL SCREEN LIGHTBOX --- */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 12, 20, 0.98);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 9999;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .lightbox.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #lightbox-close {
+            position: absolute;
+            top: env(safe-area-inset-top, 20px);
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox-scroll {
+            display: flex;
+            overflow-x: auto;
+            width: 100%;
+            height: 100%;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none; 
+            align-items: center;
+        }
+        
+        .lightbox-scroll::-webkit-scrollbar {
+            display: none; 
+        }
+
+        .lightbox-scroll img {
+            width: 100vw;
+            height: auto;
+            max-height: 90vh;
+            object-fit: contain;
+            scroll-snap-align: center;
+            flex-shrink: 0;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <header>
+        <div class="logo">QUAN AI</div>
+    </header>
+
+    <div class="hero">
+        <div class="app-icon-container">
+            <img src="images/icon.png" alt="Quan AI" class="app-icon" onerror="this.src='https://ui-avatars.com/api/?name=Q&background=8a2be2&color=fff&size=120'">
+        </div>
+        
+        <div class="hero-text">
+            <h1>Quan AI</h1>
+            <div class="company-subtitle">by Goorac Corporation</div>
+            <div class="status-badge"><div class="dot"></div> QUAN INTELLIGENCE v1.0</div>
+            <p>Your ultimate AI assistant. Experience hyper-fast intelligence, zero-latency interactions, and unparalleled security in a beautifully minimal interface.</p>
+        </div>
+    </div>
+
+    <div class="install-section">
+        <button id="install-btn">Install App</button>
+        <button id="update-btn">Update App</button>
+
+        <div id="unsupported-msg" style="color: var(--text-dim); font-size: 0.9rem; text-align: center;">
+            Initializing Quan Secure Link...
+        </div>
+
+        <div id="ios-guide" class="ios-notice">
+            <b>Setup Quan AI on iOS</b>
+            <div class="ios-step"><i>1</i> Tap the "Share" button at the bottom.</div>
+            <div class="ios-step"><i>2</i> Select "Add to Home Screen" from the menu.</div>
+            <div class="ios-step"><i>3</i> Open Quan from your home screen.</div>
+        </div>
+    </div>
+
+    <div class="gallery-container">
+        <div class="gallery-scroll">
+            <img src="https://drive.google.com/thumbnail?id=1TM0w7Xze2_geMLJKgoYoK6uapbKFFg-n&sz=w1080" alt="Quan Screenshot 1">
+            <img src="https://drive.google.com/thumbnail?id=1MfEt6i_JNxv-EN17sJv6JpnrKy4xmhG3&sz=w1080" alt="Quan Screenshot 2">
+            <img src="https://drive.google.com/thumbnail?id=1-0lSAsTh_Kyr-5aQhydbP7Rjd89pJtSO&sz=w1080" alt="Quan Screenshot 3">
+            <img src="https://drive.google.com/thumbnail?id=1zMxe6JkGTjVqr6n5Lu2av12baOdOQQ8d&sz=w1080" alt="Quan Screenshot 4">
+            <img src="https://drive.google.com/thumbnail?id=1FPMMiiAWX9jx57ZG2Z5sn4SQuAK27_NL&sz=w1080" alt="Quan Screenshot 5">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-title">Why Quan AI?</div>
+        <div class="features">
+            <div class="feat-item">
+                <div class="feat-icon-speed">⚡</div>
+                <div class="feat-text">
+                    <b>Event-Driven Architecture</b>
+                    <span>Engineered for speed. Built on a modern, ultra-fast event-driven core ensuring zero latency and instantaneous responses.</span>
+                </div>
+            </div>
+
+            <div class="feat-item">
+                <div class="feat-icon-secure">🔒</div>
+                <div class="feat-text">
+                    <b>Enterprise-Grade Security</b>
+                    <span>Your data is impenetrable. Highly secure encapsulation and absolute privacy ensure your information stays completely protected.</span>
+                </div>
+            </div>
+
+            <div class="feat-item">
+                <div class="feat-icon-ai">✦</div>
+                <div class="feat-text">
+                    <b>Intelligent Assistant</b>
+                    <span>Dynamic, hyper-contextual conversations powered by the latest AI logic. Capable of reasoning, brainstorming, and executing complex tasks.</span>
+                </div>
+            </div>
+
+            <div class="feat-item">
+                <div class="feat-icon-vision">◎</div>
+                <div class="feat-text">
+                    <b>Computer Vision</b>
+                    <span>Upload images securely into the chat environment. Quan instantly analyzes visual input to provide precise context and data extraction.</span>
+                </div>
+            </div>
+
+            <div class="feat-item">
+                <div class="feat-icon-voice">🎤</div>
+                <div class="feat-text">
+                    <b>Voice Interaction</b>
+                    <span>Go hands-free with highly accurate built-in speech recognition, real-time audio visualizers, and seamless flow state chatting.</span>
+                </div>
+            </div>
+            
+            <div class="feat-item">
+                <div class="feat-icon-ai" style="color:#ff5f56;">🌐</div>
+                <div class="feat-text">
+                    <b>Offline Resilient</b>
+                    <span>Progressive Web App technology guarantees that the application shell, UI, and your history load immediately, even on poor connections.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="privacy-footer">
+        <span class="section-label">Privacy & Security</span>
+        <div class="privacy-grid">
+            <div class="priv-card">
+                <b>Strictly Encrypted</b>
+                <small>End-to-end encryption across the entire Goorac infrastructure ensures zero tampering with your prompts and data.</small>
+            </div>
+            <div class="priv-card">
+                <b>No Intrusions</b>
+                <small>A pure, focused environment. No advertisements. No hidden trackers. Just you and highly secure AI intelligence.</small>
+            </div>
+        </div>
+        <p style="font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-top: 40px; letter-spacing: 2px;">GOORAC CORPORATION © 2026. ALL SYSTEMS STABLE.</p>
+    </div>
+
+    <div class="lightbox" id="lightbox">
+        <button id="lightbox-close">&times;</button>
+        <div class="lightbox-scroll" id="lightbox-scroll"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+        export const firebaseConfig = {
+            apiKey: "AIzaSyCFzAEHC5KLiO2DEkVtoTlFn9zeCQrwImE",
+            authDomain: "goorac-c3b59.firebaseapp.com",
+            projectId: "goorac-c3b59",
+            storageBucket: "goorac-c3b59.firebasestorage.app",
+            messagingSenderId: "746746595332",
+            appId: "1:746746595332:web:d3f8527d27fe8ca2530d51",
+            measurementId: "G-M46FEVRYSS"
+        };
+        const app = initializeApp(firebaseConfig);
+    </script>
+
+    <script>
+        const installBtn = document.getElementById('install-btn');
+        const updateBtn = document.getElementById('update-btn');
+        const msg = document.getElementById('unsupported-msg');
+        const iosGuide = document.getElementById('ios-guide');
+        let deferredPrompt;
+
+        // --- UPDATE VERIFICATION LOGIC ---
+        const SERVER_VERSION = "1.0"; 
+        const SERVER_ICON_HASH = "icon_v1"; 
+        
+        const localVersion = localStorage.getItem('quan_version');
+        const localIconHash = localStorage.getItem('quan_icon_hash');
+
+        // --- BROWSER BREAKOUT LOGIC ---
+        const ua = navigator.userAgent || navigator.vendor;
+        const isInstagram = ua.indexOf('Instagram') > -1 || ua.indexOf('FBAN') > -1 || ua.indexOf('FBAV') > -1;
+        const isAndroid = /Android/i.test(ua);
+        const isIos = /iPhone|iPad|iPod/.test(ua);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        // Auto-Redirect logic for Android Instagram
+        if (isInstagram && isAndroid) {
+            const chromeIntent = `intent://${window.location.host}${window.location.pathname}#Intent;scheme=https;package=com.android.chrome;end`;
+            window.location.href = chromeIntent;
+            
+            // Fallback button if auto-redirect fails
+            installBtn.textContent = "Open in Chrome to Install";
+            installBtn.style.display = 'block';
+            installBtn.onclick = () => { window.location.href = chromeIntent; };
+            msg.textContent = "⚠️ In-app browser detected. Please open in Chrome.";
+        } 
+        else if (isStandalone) {
+            // Check for Update
+            if (localVersion !== SERVER_VERSION || localIconHash !== SERVER_ICON_HASH) {
+                msg.textContent = "✨ New Update Available: App Icon or Version changed.";
+                updateBtn.style.display = 'block';
+                installBtn.style.display = 'none';
+                
+                updateBtn.addEventListener('click', () => {
+                    updateBtn.textContent = "Updating...";
+                    localStorage.setItem('quan_version', SERVER_VERSION);
+                    localStorage.setItem('quan_icon_hash', SERVER_ICON_HASH);
+                    
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.getRegistrations().then(registrations => {
+                            for(let registration of registrations) {
+                                registration.update();
+                            }
+                        });
+                    }
+                    setTimeout(() => window.location.reload(true), 1500);
+                });
+            } else {
+                msg.textContent = "✅ Quan AI Installed & Optimized";
+                installBtn.style.display = 'none';
+            }
+        } else if (isIos) {
+            msg.style.display = 'none';
+            iosGuide.style.display = 'block';
+        } else {
+            // Standard PWA Logic
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installBtn.style.display = 'block';
+                msg.style.display = 'none';
+            });
+
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    if (outcome === 'accepted') {
+                        installBtn.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem('quan_version', SERVER_VERSION);
+            localStorage.setItem('quan_icon_hash', SERVER_ICON_HASH);
+            installBtn.style.display = 'none';
+            msg.textContent = "✅ Connection Established. Welcome to Quan AI.";
+            msg.style.display = 'block';
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(e => console.log(e));
+            });
+        }
+
+        // --- FULL SCREEN LIGHTBOX LOGIC ---
+        const galleryImages = document.querySelectorAll('.gallery-scroll img');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxScroll = document.getElementById('lightbox-scroll');
+        const lightboxClose = document.getElementById('lightbox-close');
+
+        galleryImages.forEach((img, index) => {
+            const lbImg = document.createElement('img');
+            // Dynamically replace the w1080 thumbnail flag with w1920 for high-res full screen viewing
+            lbImg.src = img.src.replace('sz=w1080', 'sz=w1920'); 
+            lbImg.alt = img.alt;
+            lbImg.id = `lb-img-${index}`;
+            lightboxScroll.appendChild(lbImg);
+
+            img.addEventListener('click', () => {
+                lightbox.classList.add('active');
+                setTimeout(() => {
+                    document.getElementById(`lb-img-${index}`).scrollIntoView({
+                        behavior: 'instant',
+                        inline: 'center'
+                    });
+                }, 10);
+            });
+        });
+
+        lightboxClose.addEventListener('click', () => {
+            lightbox.classList.remove('active');
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+                lightbox.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
