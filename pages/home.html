@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://js.puter.com/v2/"></script>
     
     <link rel="manifest" href="../manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
@@ -1461,68 +1462,32 @@
         window.justSentPrompt = false; 
 
         // ==========================================================================
-        // PIPER TTS ENGINE & NATIVE FALLBACK GLOBALS
+        // PUTER.JS TTS ENGINE & NATIVE FALLBACK GLOBALS
         // ==========================================================================
+        window.currentAudioElement = null; // Used for Puter HTMLAudioElement
+        window.isNativePlaying = false;
+        window.activeSpeakBtn = null; // Track the currently playing button
+
+        // Old worker variables kept to respect "don't remove lines" rule
         window.currentAudioSource = null;
         window.piperWorker = null;
         window.piperIsReady = false;
-        window.activeSpeakBtn = null; // NEW: Track the currently playing button
 
-        try {
-            // Removed { type: 'module' } to support the standard fetch worker you provided
-            window.piperWorker = new Worker('../tts-worker.js');
-            window.piperWorker.onmessage = function(e) {
-                const response = e.data;
-                if (response.status === 'ready') window.piperIsReady = true;
-                if (response.status === 'success') window.playPiperAudio(response.audio);
-                if (response.status === 'error') window.fallbackTTS(response.originalText, response.fallbackLang);
-            };
-        } catch(e) {
-            console.warn("[Quan AI] Piper Worker failed to load. Falling back to native TTS.");
-        }
-
-        window.playPiperAudio = async function(arrayBuffer) {
-            if (window.currentAudioSource) {
-                try { window.currentAudioSource.stop(); } catch(e){}
-            }
-            window.speechSynthesis.cancel(); // Stop any native speech overlap
-            
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            try {
-                // Decode the MP3 array buffer sent by the new worker
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                window.currentAudioSource = audioContext.createBufferSource();
-                window.currentAudioSource.buffer = audioBuffer;
-                window.currentAudioSource.connect(audioContext.destination);
-                
-                // Reset icon when audio finishes playing naturally
-                window.currentAudioSource.onended = () => {
-                    if (window.activeSpeakBtn) {
-                        window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
-                        window.activeSpeakBtn = null;
-                    }
-                };
-                
-                window.currentAudioSource.start();
-            } catch(error) {
-                console.error("Audio decode error:", error);
-                if (window.activeSpeakBtn) {
+        window.playNativeFallback = function(text, lang, btn) {
+            window.speechSynthesis.cancel();
+            window.isNativePlaying = true;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.onend = () => {
+                window.isNativePlaying = false;
+                if (window.activeSpeakBtn === btn) {
                     window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
                     window.activeSpeakBtn = null;
                 }
-            }
-        };
-
-        window.fallbackTTS = function(text, lang='en-US') {
-            if (window.currentAudioSource) {
-                try { window.currentAudioSource.stop(); window.currentAudioSource = null; } catch(e){}
-            }
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = lang;
-            // Reset icon when native speech finishes
-            utterance.onend = () => {
-                if (window.activeSpeakBtn) {
+            };
+            utterance.onerror = () => {
+                window.isNativePlaying = false;
+                if (window.activeSpeakBtn === btn) {
                     window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
                     window.activeSpeakBtn = null;
                 }
@@ -2575,10 +2540,13 @@
                                 // Check if this specific button is already the active playing one
                                 if (window.activeSpeakBtn === speakBtn) {
                                     // Stop audio
-                                    if (window.currentAudioSource) { 
-                                        try { window.currentAudioSource.stop(); window.currentAudioSource = null; } catch(e){} 
+                                    if (window.currentAudioElement) { 
+                                        try { window.currentAudioElement.pause(); window.currentAudioElement = null; } catch(e){} 
                                     }
-                                    window.speechSynthesis.cancel();
+                                    if (window.isNativePlaying) {
+                                        window.speechSynthesis.cancel();
+                                        window.isNativePlaying = false;
+                                    }
                                     
                                     // Revert icon and clear state
                                     speakBtn.innerHTML = window.SVGS.volume_up;
@@ -2587,10 +2555,13 @@
                                 }
 
                                 // Stop any overlap from OTHER buttons
-                                if (window.currentAudioSource) { 
-                                    try { window.currentAudioSource.stop(); window.currentAudioSource = null; } catch(e){} 
+                                if (window.currentAudioElement) { 
+                                    try { window.currentAudioElement.pause(); window.currentAudioElement = null; } catch(e){} 
                                 }
-                                window.speechSynthesis.cancel();
+                                if (window.isNativePlaying) {
+                                    window.speechSynthesis.cancel();
+                                    window.isNativePlaying = false;
+                                }
 
                                 // Reset previous active button's icon if one exists
                                 if (window.activeSpeakBtn) {
@@ -2605,30 +2576,39 @@
                                 const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
                                 const isTelugu = /[\u0C00-\u0C7F]/.test(data.text);
 
-                                let voiceModel = 'en_US-amy-medium';
                                 let fallbackLang = 'en-US';
-
                                 if (isTamil) {
-                                    voiceModel = 'ta_IN-kanmani-medium';
                                     fallbackLang = 'ta-IN';
                                 } else if (isTelugu) {
-                                    voiceModel = 'te_IN-maya-medium';
                                     fallbackLang = 'te-IN';
                                 }
 
-                                if (window.piperWorker && window.piperIsReady) {
-                                    // window.showToast('Generating Neural Voice...', 'default');
-                                    window.piperWorker.postMessage({
-                                        text: data.text,
-                                        voiceModel: voiceModel,
-                                        fallbackLang: fallbackLang,
-                                        originalText: data.text
-                                    });
-                                } else {
-                                    // window.showToast('Playing Native Voice...', 'default');
-                                    window.fallbackTTS(data.text, fallbackLang);
-                                }
                                 window.vibrateLight();
+
+                                // Use Puter.js if available, else Native Fallback
+                                try {
+                                    if (typeof puter !== 'undefined' && puter.ai) {
+                                        puter.ai.txt2speech(data.text, fallbackLang).then((audio) => {
+                                            window.currentAudioElement = audio;
+                                            audio.play();
+                                            audio.onended = () => {
+                                                if (window.activeSpeakBtn === speakBtn) {
+                                                    window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                                                    window.activeSpeakBtn = null;
+                                                }
+                                            };
+                                            audio.onerror = () => {
+                                                window.playNativeFallback(data.text, fallbackLang, speakBtn);
+                                            };
+                                        }).catch((err) => {
+                                            window.playNativeFallback(data.text, fallbackLang, speakBtn);
+                                        });
+                                    } else {
+                                        window.playNativeFallback(data.text, fallbackLang, speakBtn);
+                                    }
+                                } catch(e) {
+                                    window.playNativeFallback(data.text, fallbackLang, speakBtn);
+                                }
                             };
 
                             actionsContainer.appendChild(copyBtn);
