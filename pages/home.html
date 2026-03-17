@@ -714,31 +714,23 @@
         .plus-btn:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
 
         .send-btn {
-            background: linear-gradient(135deg, #9d4edd, #ff5722); /* Enhanced premium gradient */
+            background: linear-gradient(135deg, #8a2be2, #ff4500); /* Simple, elegant gradient */
             border: none; border-radius: 50%; min-width: 38px; width: 38px; height: 38px; display: none; 
             align-items: center; justify-content: center; color: #fff; pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); align-self: flex-end; /* Smoother transition */
-            margin-bottom: 2px; 
-            box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 4px 15px rgba(138, 43, 226, 0.3); /* Premium inner glow */
+            transition: all 0.2s ease-out; align-self: flex-end;
+            margin-bottom: 2px; box-shadow: 0 4px 10px rgba(138, 43, 226, 0.2); 
         }
+
         .send-btn.active {
             cursor: pointer; pointer-events: auto; display: flex !important;
-            box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 6px 20px rgba(138, 43, 226, 0.5); transform: scale(1);
-            animation: sendBtnPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes sendBtnPop {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4); transform: scale(1);
         }
         .send-btn:hover {
-            transform: scale(1.08); 
-            box-shadow: inset 0 1px 2px rgba(255,255,255,0.5), 0 8px 25px rgba(255, 69, 0, 0.6);
+            transform: scale(1.05); 
+            box-shadow: 0 6px 20px rgba(138, 43, 226, 0.5);
         }
-        .send-btn:active { transform: scale(0.92); }
-        .send-btn.stop-mode { 
-            background: linear-gradient(135deg, #ff4500, #d80000); 
-            box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 6px 20px rgba(255, 69, 0, 0.5); 
-        }
+        .send-btn:active { transform: scale(0.95); }
+        .send-btn.stop-mode { background: #ff4500; box-shadow: 0 4px 15px rgba(255, 69, 0, 0.4); }
 
         .mic-btn-wrapper {
             width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
@@ -1219,7 +1211,6 @@
         let sidebarUnsubscribe = null;
         let hasMoreChats = true;
         let isLoadingChats = false;
-        let pendingFileAction = null;
 
         // Smart typing logic states
         window.isThinking = false;
@@ -1839,25 +1830,15 @@
         });
 
         cameraOptionBtn.addEventListener('click', () => {
-            pendingFileAction = () => cameraUpload.click();
-            if (history.state && history.state.attachmentModalOpen) {
-                history.back(); 
-            } else {
-                closeAttachmentModal();
-                pendingFileAction();
-                pendingFileAction = null;
-            }
+            cameraUpload.click();
+            closeAttachmentModal();
+            // Removed history.back() here to prevent mobile OS tab memory kill
         });
 
         galleryOptionBtn.addEventListener('click', () => {
-            pendingFileAction = () => imageUpload.click();
-            if (history.state && history.state.attachmentModalOpen) {
-                history.back(); 
-            } else {
-                closeAttachmentModal();
-                pendingFileAction();
-                pendingFileAction = null;
-            }
+            imageUpload.click();
+            closeAttachmentModal();
+            // Removed history.back() here to prevent mobile OS tab memory kill
         });
 
         bottomModalOverlay.addEventListener('click', () => {
@@ -1898,12 +1879,6 @@
                 closeChatModal();
             } else if (attachmentModal.classList.contains('show')) {
                 closeAttachmentModal();
-                if (pendingFileAction) {
-                    setTimeout(() => {
-                        pendingFileAction();
-                        pendingFileAction = null;
-                    }, 50); 
-                }
             } else if (sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
                 sidebarOverlay.classList.remove('show');
