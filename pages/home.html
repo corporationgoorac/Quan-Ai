@@ -1715,24 +1715,32 @@
         });
 
         function handleImageSelection(file) {
-            if (file.size > 10 * 1024 * 1024) { 
-                window.showToast("Image too large. Max 10MB.", "error");
-                return;
+            closeAttachmentModal(); 
+            
+            // Adjusted: compress the image if it's above 6MB internally 
+            // Original: if (file.size > 10 * 1024 * 1024) { window.showToast("Image too large. Max 10MB.", "error"); return; }
+            let compressQuality = 0.7; 
+            if (file.size > 6 * 1024 * 1024) { 
+                compressQuality = 0.4; 
             }
+            
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; 
-                    const scaleSize = MAX_WIDTH / img.width;
-                    canvas.width = MAX_WIDTH;
+                    const MAX_WIDTH = 1200; 
+                    let scaleSize = 1; 
+                    if (img.width > MAX_WIDTH) { 
+                        scaleSize = MAX_WIDTH / img.width; 
+                    }
+                    canvas.width = img.width * scaleSize;
                     canvas.height = img.height * scaleSize;
                     
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.7); 
+                    selectedImageBase64 = canvas.toDataURL('image/jpeg', compressQuality); 
                     
                     imagePreview.src = selectedImageBase64;
                     imagePreviewContainer.style.display = 'block'; 
@@ -1824,13 +1832,13 @@
         cameraOptionBtn.addEventListener('click', () => {
             cameraUpload.click();
             closeAttachmentModal();
-            if (history.state && history.state.attachmentModalOpen) history.back();
+            // Removed history.back() here to prevent mobile OS tab memory kill
         });
 
         galleryOptionBtn.addEventListener('click', () => {
             imageUpload.click();
             closeAttachmentModal();
-            if (history.state && history.state.attachmentModalOpen) history.back();
+            // Removed history.back() here to prevent mobile OS tab memory kill
         });
 
         bottomModalOverlay.addEventListener('click', () => {
