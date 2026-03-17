@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quan-ai-dynamic-v34'; // Bumped to v34 to force the new strategy to activate
+const CACHE_NAME = 'quan-ai-dynamic-v33'; // Bumped to v3 to force the new strategy to activate
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -39,28 +39,15 @@ self.addEventListener('fetch', (event) => {
   // Only intercept standard GET requests
   if (event.request.method !== 'GET') return;
 
-  // Prevent caching browser extensions or external non-http schemes
-  if (!event.request.url.startsWith('http')) return;
-
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       
       // Kick off a background network request to fetch the freshest data
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        
-        // Safety Check: Only cache valid, successful responses
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-
-        // THE FIX: Clone the response IMMEDIATELY before the stream is consumed by the browser
-        const responseToCache = networkResponse.clone();
-
         caches.open(CACHE_NAME).then((cache) => {
           // Update the cache silently in the background so the next launch is up-to-date
-          cache.put(event.request, responseToCache);
+          cache.put(event.request, networkResponse.clone());
         });
-        
         return networkResponse;
       }).catch((error) => {
         console.log('[Quan AI] Offline, sticking to cache for:', event.request.url);
