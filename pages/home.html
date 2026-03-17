@@ -1468,7 +1468,7 @@
         window.piperIsReady = false;
 
         try {
-            window.piperWorker = new Worker('../tts-worker.js');
+            window.piperWorker = new Worker('../tts-worker.js', { type: 'module' });
             window.piperWorker.onmessage = function(e) {
                 const response = e.data;
                 if (response.status === 'ready') window.piperIsReady = true;
@@ -2553,10 +2553,20 @@
                                 }
                                 window.speechSynthesis.cancel();
 
-                                // Lightning-fast heuristic language detection (Tamil Unicode Range)
+                                // Lightning-fast heuristic language detection (Tamil & Telugu Unicode Ranges)
                                 const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
-                                const voiceModel = isTamil ? 'ta_IN-kanmani-medium' : 'en_US-amy-medium';
-                                const fallbackLang = isTamil ? 'ta-IN' : 'en-US';
+                                const isTelugu = /[\u0C00-\u0C7F]/.test(data.text);
+
+                                let voiceModel = 'en_US-amy-medium';
+                                let fallbackLang = 'en-US';
+
+                                if (isTamil) {
+                                    voiceModel = 'ta_IN-kanmani-medium';
+                                    fallbackLang = 'ta-IN';
+                                } else if (isTelugu) {
+                                    voiceModel = 'te_IN-maya-medium';
+                                    fallbackLang = 'te-IN';
+                                }
 
                                 if (window.piperWorker && window.piperIsReady) {
                                     window.showToast('Generating Neural Voice...', 'default');
