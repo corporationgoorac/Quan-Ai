@@ -9,6 +9,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Quan AI</title>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -600,6 +603,13 @@
         .bubble img { max-width: 100%; border-radius: 8px; margin: 10px 0; }
         .bubble hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; }
         
+        /* --- NEW CSS FOR INLINE CODE --- */
+        .bubble code:not(.hljs) { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #ffb86c; font-family: monospace; font-size: 0.9em; }
+        
+        /* --- NEW CSS FOR MEMORY BADGE RENDER --- */
+        .memory-update-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); padding: 4px 10px; border-radius: 12px; color: #fff; margin-top: 10px; margin-bottom: 5px; width: fit-content; }
+        .memory-update-badge .svg-icon { width: 14px; height: 14px; color: #ff4500; }
+
         .hljs { background: transparent !important; padding: 0 !important; }
         /* ---------------------------------------- */
 
@@ -1269,6 +1279,47 @@
         window.formatMarkdown = function(text) {
             if(!text) return "";
             
+            let memoryBadgeHtml = "";
+            let processedText = text;
+            
+            // --- NEW: MEMORY RENDER HANDLING ---
+            const memStart = processedText.indexOf("<UPDATE_MEMORY>");
+            if (memStart !== -1) {
+                // If tag is found, hide it so the user never sees raw XML while it's typing
+                processedText = processedText.substring(0, memStart);
+                // Create a beautiful subtle UI badge to let the user know the AI learned something
+                memoryBadgeHtml = `<div class="memory-update-badge"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg> Memory Updated</div>`;
+            } else {
+                // Handle partial typing so it doesn't flicker while generating
+                const partialMatch = processedText.match(/<UPDATE_[A-Z_]*$/);
+                if(partialMatch) {
+                    processedText = processedText.substring(0, partialMatch.index);
+                }
+            }
+
+            // --- NEW: MATH (KaTeX) PRE-PROCESSING ---
+            if (typeof katex !== 'undefined') {
+                // Display Math: $$ ... $$ 
+                processedText = processedText.replace(/\$\$(.*?)\$\$/gs, (match, math) => {
+                    try { return katex.renderToString(math, { displayMode: true, throwOnError: false }); } catch(e) { return match; }
+                });
+                // Display Math: \[ ... \]
+                processedText = processedText.replace(/\\\[(.*?)\\\]/gs, (match, math) => {
+                    try { return katex.renderToString(math, { displayMode: true, throwOnError: false }); } catch(e) { return match; }
+                });
+                // Inline Math: \( ... \) 
+                processedText = processedText.replace(/\\\((.*?)\\\)/gs, (match, math) => {
+                    try { return katex.renderToString(math, { displayMode: false, throwOnError: false }); } catch(e) { return match; }
+                });
+                // Inline Math: $ ... $ (Ensures we don't accidentally format currency like $100)
+                processedText = processedText.replace(/(^|[^\\])\$([^$\n]+?)\$/g, (match, prefix, math) => {
+                    try { return prefix + katex.renderToString(math, { displayMode: false, throwOnError: false }); } catch(e) { return match; }
+                });
+            }
+            
+            // Re-assign processed text back to 'text' to preserve the rest of the original code below
+            text = processedText;
+            
             // --- NEW: EXTERNAL LIBRARY INTEGRATION (MARKED.JS + HIGHLIGHT.JS) ---
             try {
                 if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
@@ -1289,7 +1340,20 @@
                         breaks: true,
                         gfm: true
                     });
-                    return marked.parse(text);
+                    
+                    let parsedHtml = marked.parse(text);
+                    
+                    // --- NEW: SECURITY (DOMPurify) ---
+                    // Prevent XSS attacks by sanitizing all AI-generated HTML
+                    // We explicitly whitelist MathML tags so KaTeX equations aren't stripped out
+                    if (typeof DOMPurify !== 'undefined') {
+                        parsedHtml = DOMPurify.sanitize(parsedHtml, {
+                            ADD_TAGS: ['math', 'mrow', 'mi', 'mn', 'mo', 'ms', 'mspace', 'mtext', 'menclose', 'merror', 'mpadded', 'mphantom', 'mroot', 'mrow', 'msqrt', 'mstyle', 'mmultiscripts', 'mover', 'mprescripts', 'msub', 'msubsup', 'msup', 'munder', 'munderover', 'none', 'maligngroup', 'malignmark', 'mtable', 'mtd', 'mtr', 'mlongdiv', 'mscarries', 'mscarry', 'msgroup', 'msline', 'msrow', 'semantics', 'annotation', 'annotation-xml'],
+                            ADD_ATTR: ['target', 'class', 'style', 'aria-hidden']
+                        });
+                    }
+                    
+                    return parsedHtml + memoryBadgeHtml;
                 }
             } catch (err) {
                 console.error("Markdown parsing error with library", err);
@@ -1324,7 +1388,7 @@
                 return line + '<br>';
             }).join('');
             
-            return html;
+            return html + memoryBadgeHtml;
         };
 
         function format12HourTime(dateObj) {
