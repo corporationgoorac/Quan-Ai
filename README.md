@@ -31,10 +31,3 @@ Quan AI is a proprietary web-based conversational AI interface. It serves as the
 *(Note: Specific architectural features and capability documentation have been intentionally omitted from this document for security and intellectual property protection.)*
 
 ---
-
-## 💻 Internal Developer Setup
-
-1. **Clone the secure repository:**
-   ```bash
-   git clone [INSERT_PRIVATE_REPO_URL]
-   cd quan-ai
