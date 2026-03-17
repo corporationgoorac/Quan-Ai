@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quan-ai-dynamic-v1'; // Bumped once to clear the old stubborn cache
+const CACHE_NAME = 'quan-ai-dynamic-v21'; // Bumped to v2 to force the new strategy to activate
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -32,28 +32,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim(); // Take control of all open pages right away
 });
 
-// 3. Fetch Event: NETWORK FIRST, fallback to Cache
+// 3. Fetch Event: STALE-WHILE-REVALIDATE (Kills the native loading bar)
 self.addEventListener('fetch', (event) => {
   // Only intercept standard GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        // Network request succeeded! The user is online.
-        // Clone the fresh response and update the cache in the background so it's always up-to-date.
-        const responseToCache = networkResponse.clone();
+    caches.match(event.request).then((cachedResponse) => {
+      
+      // Kick off a background network request to fetch the freshest data
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+          // Update the cache silently in the background so the next launch is up-to-date
+          cache.put(event.request, networkResponse.clone());
         });
-        
-        // Return the fresh network response to the screen
         return networkResponse;
-      })
-      .catch(() => {
-        // Network request failed (the user is offline). 
-        // Fall back to the latest saved version in the cache.
-        return caches.match(event.request);
-      })
+      }).catch((error) => {
+        console.log('[Quan AI] Offline, sticking to cache for:', event.request.url);
+      });
+
+      // THE MAGIC TRICK: Return the cached response INSTANTLY if we have it.
+      // If we don't have it in the cache yet (e.g., very first launch), fall back to the network.
+      return cachedResponse || fetchPromise;
+    })
   );
 });
