@@ -1,44 +1,31 @@
 // tts-worker.js
-// 1. Import the ONNX runtime and Piper WASM wrapper (using CDNs for the example)
-importScripts('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js');
-importScripts('https://cdn.jsdelivr.net/npm/@rhasspy/piper-wasm/dist/piper.js');
+import * as tts from 'https://cdn.jsdelivr.net/npm/@mintplex-labs/piper-tts-web@1.0.4/+esm';
 
-let piperTTS = null;
-let currentVoice = null;
-
-// Initialize the TTS engine
-async function initTTS(voiceModelName) {
-    if (piperTTS && currentVoice === voiceModelName) return; 
-
-    // In production, host these .onnx files on your own CDN or Firebase Storage
-    const modelUrl = `https://your-cdn.com/models/${voiceModelName}.onnx`;
-    const configUrl = `${modelUrl}.json`;
-
-    piperTTS = await Piper.create(modelUrl, configUrl);
-    currentVoice = voiceModelName;
-    postMessage({ status: 'ready' });
-}
-
-// Listen for messages from the main Quantum UI
 self.onmessage = async function(e) {
-    const { text, voiceModel } = e.data;
+    const { text, voiceModel, fallbackLang, originalText } = e.data;
 
     try {
-        postMessage({ status: 'loading_model' });
-        await initTTS(voiceModel);
+        // This library automatically downloads, caches, and runs the ONNX model locally
+        const audioWavBlob = await tts.predict({
+            text: text,
+            voiceId: voiceModel
+        });
 
-        postMessage({ status: 'generating' });
-        
-        // Generate raw audio data (Float32Array)
-        const audioBuffer = await piperTTS.synthesize(text);
-        
-        // Send the audio back to the main thread
+        // Convert the WAV Blob to an ArrayBuffer so we can transfer it
+        const arrayBuffer = await audioWavBlob.arrayBuffer();
+
+        // Send the raw ArrayBuffer back to the main thread
         postMessage({ 
             status: 'success', 
-            audio: audioBuffer 
-        }, [audioBuffer.buffer]); // Transfer ownership to save memory
+            audio: arrayBuffer 
+        }, [arrayBuffer]); 
 
     } catch (error) {
-        postMessage({ status: 'error', message: error.message });
+        console.error("Piper Worker Error:", error);
+        postMessage({ 
+            status: 'error', 
+            fallbackLang: fallbackLang,
+            originalText: originalText
+        });
     }
 };
