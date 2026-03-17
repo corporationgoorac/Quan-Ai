@@ -940,7 +940,10 @@
         history: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.25 2.52.75-1.23-3.5-2.07V8h-1.5z"/></svg>',
         arrow_downward: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>',
         file_download: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>',
-        favorite: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
+        favorite: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+        add: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>',
+        arrow_back: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>',
+        photo_camera: '<svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>'
     };
 
     // Global Base64 Preloader for 0ms Images
@@ -1067,10 +1070,11 @@
         </div>
 
         <input type="file" id="image-upload" accept="image/*" style="display: none;">
+        <input type="file" id="camera-upload" accept="image/*" capture="environment" style="display: none;">
         
         <div class="input-area" id="input-capsule">
             <button class="plus-btn" id="attach-btn" title="Attach Image" onclick="window.vibrateLight()">
-                <script>document.write(window.SVGS.image);</script>
+                <script>document.write(window.SVGS.add);</script>
             </button>
             
             <div class="input-box">
@@ -1115,6 +1119,21 @@
         </button>
         <button class="modal-option delete" id="delete-chat-btn">
             <script>document.write(window.SVGS.delete);</script> Delete Chat
+        </button>
+    </div>
+
+    <div id="attachment-modal" class="bottom-modal no-select">
+        <div style="display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;">
+            <button id="close-attachment-btn" style="background: none; border: none; color: white; margin-right: 15px; display: flex; padding: 4px; cursor: pointer;">
+                <script>document.write(window.SVGS.arrow_back);</script>
+            </button>
+            <span style="font-size: 1.1rem; font-weight: 500;">Attach</span>
+        </div>
+        <button class="modal-option" id="camera-option-btn">
+            <script>document.write(window.SVGS.photo_camera);</script> <span>Take Photo</span>
+        </button>
+        <button class="modal-option" id="gallery-option-btn">
+            <script>document.write(window.SVGS.image);</script> <span>Gallery</span>
         </button>
     </div>
 
@@ -1164,6 +1183,12 @@
         const pinChatText = document.getElementById('pin-chat-text');
         const exportChatBtn = document.getElementById('export-chat-btn');
         const deleteChatBtn = document.getElementById('delete-chat-btn');
+        
+        const cameraUpload = document.getElementById('camera-upload');
+        const attachmentModal = document.getElementById('attachment-modal');
+        const closeAttachmentBtn = document.getElementById('close-attachment-btn');
+        const cameraOptionBtn = document.getElementById('camera-option-btn');
+        const galleryOptionBtn = document.getElementById('gallery-option-btn');
         
         const voiceVisualizer = document.getElementById('voice-visualizer'); 
         const scrollBottomBtn = document.getElementById('scroll-bottom-btn'); 
@@ -1653,8 +1678,13 @@
         /* ==========================================================================
            IMAGE COMPRESSION & DRAG DROP LOGIC
            ========================================================================== */
-        attachBtn.addEventListener('click', () => {
-            imageUpload.click();
+        // Modified: attachBtn now handled via attachment modal logic below
+        attachBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            bottomModalOverlay.classList.add('show');
+            attachmentModal.classList.add('show');
+            history.pushState({ attachmentModalOpen: true }, "");
+            window.vibrateLight();
         });
 
         chatInput.addEventListener('dragover', (e) => { e.preventDefault(); inputCapsule.style.borderColor = '#ff4500'; });
@@ -1677,6 +1707,10 @@
         });
 
         imageUpload.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleImageSelection(e.target.files[0]);
+        });
+
+        cameraUpload.addEventListener('change', (e) => {
             if (e.target.files[0]) handleImageSelection(e.target.files[0]);
         });
 
@@ -1715,6 +1749,7 @@
             imagePreview.src = '';
             imagePreviewContainer.style.display = 'none';
             imageUpload.value = ''; 
+            cameraUpload.value = '';
             updateSendBtnState(); 
         });
 
@@ -1767,14 +1802,41 @@
         }
 
         function closeChatModal() {
-            bottomModalOverlay.classList.remove('show');
             chatOptionsModal.classList.remove('show');
             selectedChatIdForModal = null;
+            if (!attachmentModal.classList.contains('show')) {
+                bottomModalOverlay.classList.remove('show');
+            }
         }
+
+        function closeAttachmentModal() {
+            attachmentModal.classList.remove('show');
+            if (!chatOptionsModal.classList.contains('show')) {
+                bottomModalOverlay.classList.remove('show');
+            }
+        }
+
+        closeAttachmentBtn.addEventListener('click', () => {
+            closeAttachmentModal();
+            if (history.state && history.state.attachmentModalOpen) history.back();
+        });
+
+        cameraOptionBtn.addEventListener('click', () => {
+            cameraUpload.click();
+            closeAttachmentModal();
+            if (history.state && history.state.attachmentModalOpen) history.back();
+        });
+
+        galleryOptionBtn.addEventListener('click', () => {
+            imageUpload.click();
+            closeAttachmentModal();
+            if (history.state && history.state.attachmentModalOpen) history.back();
+        });
 
         bottomModalOverlay.addEventListener('click', () => {
             closeChatModal();
-            if (history.state && history.state.chatModalOpen) {
+            closeAttachmentModal();
+            if (history.state && (history.state.chatModalOpen || history.state.attachmentModalOpen)) {
                 history.back();
             }
         });
@@ -1807,6 +1869,8 @@
                 scale = 1; fullscreenImg.style.transform = `scale(${scale})`;
             } else if (chatOptionsModal.classList.contains('show')) {
                 closeChatModal();
+            } else if (attachmentModal.classList.contains('show')) {
+                closeAttachmentModal();
             } else if (sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
                 sidebarOverlay.classList.remove('show');
@@ -1830,6 +1894,7 @@
             imagePreviewContainer.style.display = 'none';
             imagePreview.src = '';
             imageUpload.value = '';
+            cameraUpload.value = '';
 
             window.isThinking = false;
             window.isGenerating = false; 
@@ -1926,6 +1991,7 @@
             imagePreview.src = '';
             selectedImageBase64 = null;
             imageUpload.value = '';
+            cameraUpload.value = '';
 
             window.isInitialChatLoad = false; 
             window.isGenerating = true; 
