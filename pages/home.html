@@ -410,6 +410,12 @@
             user-select: text !important;
             -webkit-user-select: text !important;
         }
+        
+        /* FIX: Prevents text selection from intercepting smooth scroll during generation */
+        .bubble.generating {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+        }
 
         .bubble.user {
             background: #2b2c38; 
@@ -891,7 +897,8 @@
         delete: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
         history: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.25 2.52.75-1.23-3.5-2.07V8h-1.5z"/></svg>',
         arrow_downward: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>',
-        file_download: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>'
+        file_download: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>',
+        favorite: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
     };
 
     // Global Base64 Preloader for 0ms Images
@@ -1865,6 +1872,9 @@
                     }
                 });
                 
+                // NEW: Ensure scroll lock is disabled if generation is stopped manually
+                document.querySelectorAll('.bubble.generating').forEach(b => b.classList.remove('generating'));
+                
                 if (window.activeActionsEl) window.activeActionsEl.classList.remove('hidden');
                 window.activeActionsEl = null;
 
@@ -1963,17 +1973,29 @@
                     bubble.addEventListener('touchstart', (e) => {
                         const currentTime = new Date().getTime();
                         const tapLength = currentTime - lastTap;
+                        // NEW FIX: Only trigger heart if it's a true double tap WITHOUT scrolling
                         if (tapLength < 500 && tapLength > 0) {
                             e.preventDefault();
                             window.vibrateSuccess();
                             const heart = document.createElement('div');
                             heart.className = 'floating-heart';
-                            heart.innerHTML = window.SVGS.keep; // pop heart icon
+                            heart.innerHTML = window.SVGS.favorite; // Changed from keep to proper favorite heart
+                            
+                            // Make it appear exactly where the finger tapped instead of always in the middle
+                            const rect = bubble.getBoundingClientRect();
+                            const touchX = e.touches[0].clientX - rect.left;
+                            const touchY = e.touches[0].clientY - rect.top;
+                            heart.style.left = touchX + 'px';
+                            heart.style.top = touchY + 'px';
+
                             bubble.appendChild(heart);
                             setTimeout(() => heart.remove(), 800);
                         }
                         lastTap = currentTime;
                     });
+
+                    // NEW FIX: Prevent scroll double-tap bug from firing while swiping
+                    bubble.addEventListener('touchmove', () => { lastTap = 0; }, {passive: true});
                     
                     if (data.imageUrl) {
                         const img = document.createElement('img');
@@ -2039,6 +2061,9 @@
                                     actionsContainer.classList.add('hidden');
                                     window.activeActionsEl = actionsContainer;
 
+                                    // NEW FIX: Lock text selection scroll issues while generating
+                                    bubble.classList.add('generating');
+
                                     let i = 0;
                                     window.isThinking = false; 
                                     window.isGenerating = true; 
@@ -2077,6 +2102,9 @@
                                             textSpan.classList.remove('typing-cursor');
                                             textSpan.innerHTML = window.formatMarkdown(data.text);
                                             
+                                            // NEW FIX: Remove generation scroll lock
+                                            bubble.classList.remove('generating');
+
                                             actionsContainer.classList.remove('hidden');
                                             window.activeActionsEl = null;
 
@@ -2352,20 +2380,4 @@
                     const { outcome } = await deferredPrompt.userChoice;
                     if (outcome === 'accepted') {
                         console.log('User accepted the install prompt');
-                        localStorage.setItem('quan_install_dismissed', 'true'); // Don't show again if installed
-                    } else {
-                        console.log('User dismissed the install prompt');
-                    }
-                    // We've used the prompt, and can't use it again, throw it away
-                    deferredPrompt = null;
-                }
-            });
-
-            closeInstallBtn.addEventListener('click', () => {
-                installBanner.classList.remove('visible');
-                localStorage.setItem('quan_install_dismissed', 'true');
-            });
-        }
-    </script>
-</body>
-</html>
+                        localStorage.setItem('quan_install_
