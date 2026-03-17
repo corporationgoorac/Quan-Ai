@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0c14">
+    <title>Settings - Quan AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* CORE FOUNDATION (Matching home.html) */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { display: none; }
+        
+        html, body {
+            height: 100vh !important; height: 100dvh !important; width: 100vw !important;
+            background-color: #0a0c14; color: #ffffff; font-family: 'Inter', sans-serif;
+            overflow: hidden !important; position: fixed !important; left: 0 !important; top: 0 !important;
+            overscroll-behavior: none !important; user-select: none !important;
+        }
+
+        .app-container {
+            display: flex; flex-direction: column; height: 100%; width: 100%;
+        }
+
+        /* SVG ICONS */
+        .svg-icon { width: 24px; height: 24px; fill: currentColor; vertical-align: middle; }
+
+        /* HEADER */
+        header {
+            position: absolute; top: 0; left: 0; right: 0;
+            height: calc(60px + env(safe-area-inset-top));
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; padding-top: calc(env(safe-area-inset-top) + 6px);
+            background: #0a0c14; z-index: 2000;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        
+        .icon-btn {
+            background: none; border: none; color: #ffffff; display: flex;
+            align-items: center; justify-content: center; padding: 8px;
+            border-radius: 50%; cursor: pointer; transition: background 0.2s;
+        }
+        .icon-btn:active { background: rgba(255, 255, 255, 0.1); transform: scale(0.95); }
+
+        .page-title { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.5px; }
+
+        /* MAIN CONTENT */
+        main {
+            flex: 1; margin-top: calc(60px + env(safe-area-inset-top));
+            padding: 20px; overflow-y: auto;
+        }
+
+        /* PROFILE SECTION */
+        .profile-section {
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 40px; margin-top: 20px;
+        }
+        
+        .profile-pic {
+            width: 100px; height: 100px; border-radius: 50%; object-fit: cover;
+            border: 2px solid #8a2be2; box-shadow: 0 4px 20px rgba(138, 43, 226, 0.3);
+            margin-bottom: 15px;
+        }
+        
+        .user-name { font-size: 1.4rem; font-weight: 600; }
+
+        /* MEMORY CARD */
+        .section-title {
+            font-size: 0.9rem; color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .edit-btn {
+            background: rgba(138, 43, 226, 0.15); color: #8a2be2; border: none;
+            padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s;
+        }
+        .edit-btn:active { transform: scale(0.95); background: rgba(138, 43, 226, 0.3); }
+
+        .memory-card {
+            background: rgba(26, 28, 36, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px; padding: 20px; color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6; font-size: 0.95rem; min-height: 100px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); word-wrap: break-word;
+        }
+
+        /* SIDE MODAL (For Editing Memory) */
+        #edit-modal {
+            position: fixed; top: 0; right: -100%; width: 100%; height: 100%;
+            background: #0a0c14; z-index: 3000; display: flex; flex-direction: column;
+            transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #edit-modal.open { right: 0; }
+
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; padding-top: calc(env(safe-area-inset-top) + 10px);
+            height: calc(60px + env(safe-area-inset-top));
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, #8a2be2, #ff4500);
+            color: white; border: none; padding: 8px 16px; border-radius: 20px;
+            font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: transform 0.2s;
+        }
+        .save-btn:active { transform: scale(0.95); }
+        .save-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+        .modal-body {
+            flex: 1; padding: 20px; display: flex; flex-direction: column;
+        }
+
+        .memory-textarea {
+            width: 100%; flex: 1; background: transparent; border: none;
+            color: #ffffff; font-family: inherit; font-size: 1.05rem; line-height: 1.5;
+            resize: none; outline: none; -webkit-user-select: auto; user-select: auto;
+        }
+        .memory-textarea::placeholder { color: rgba(255,255,255,0.3); }
+
+        .toast {
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: rgba(138, 43, 226, 0.95); color: white; padding: 12px 24px; border-radius: 30px;
+            font-size: 0.9rem; font-weight: 500; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; z-index: 9999;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <script>
+        // Shared SVGs
+        window.SVGS = {
+            arrow_back: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>',
+            edit: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
+            close: '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'
+        };
+    </script>
+
+    <div class="app-container">
+        
+        <header>
+            <div class="header-left">
+                <button class="icon-btn" onclick="window.location.href='home.html'">
+                    <script>document.write(window.SVGS.arrow_back);</script>
+                </button>
+                <span class="page-title">Settings</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="profile-section">
+                <img src="../images/icon.png" alt="Profile" class="profile-pic" id="profile-img">
+                <h2 class="user-name" id="display-name">Loading...</h2>
+            </div>
+
+            <div class="section-title">
+                <span>Core Memory</span>
+                <button class="edit-btn" id="open-edit-btn">
+                    <script>document.write(window.SVGS.edit);</script> Edit
+                </button>
+            </div>
+            <div class="memory-card" id="memory-display">
+                Loading your AI's core memory...
+            </div>
+        </main>
+
+        <div id="edit-modal">
+            <div class="modal-header">
+                <div class="header-left">
+                    <button class="icon-btn" id="close-modal-btn">
+                        <script>document.write(window.SVGS.close);</script>
+                    </button>
+                    <span class="page-title">Edit Memory</span>
+                </div>
+                <button class="save-btn" id="save-memory-btn">Save</button>
+            </div>
+            <div class="modal-body">
+                <textarea class="memory-textarea" id="memory-input" placeholder="Tell Quan AI who you are, what you do, and how it should respond to you..."></textarea>
+            </div>
+        </div>
+
+        <div id="toast" class="toast">Saved successfully!</div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from '../config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+        // DOM Elements
+        const profileImg = document.getElementById('profile-img');
+        const displayName = document.getElementById('display-name');
+        const memoryDisplay = document.getElementById('memory-display');
+        
+        const editModal = document.getElementById('edit-modal');
+        const openEditBtn = document.getElementById('open-edit-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const saveMemoryBtn = document.getElementById('save-memory-btn');
+        const memoryInput = document.getElementById('memory-input');
+        const toast = document.getElementById('toast');
+
+        let currentUser = null;
+
+        // 1. INSTANT UI HYDRATION (From LocalStorage to prevent flicker)
+        const cachedPhoto = localStorage.getItem('quan_user_photo_b64');
+        const cachedName = localStorage.getItem('quan_user_name');
+        const cachedMemory = localStorage.getItem('quan_user_memory');
+
+        if (cachedPhoto) profileImg.src = cachedPhoto;
+        if (cachedName) displayName.innerText = cachedName;
+        if (cachedMemory) memoryDisplay.innerText = cachedMemory;
+
+        // Helper for Toast
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.classList.add('show');
+            if(navigator.vibrate) navigator.vibrate([15, 20, 15]);
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // 2. FIREBASE AUTH & DATA FETCH
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                
+                // Fetch latest data from Firestore
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+                
+                if (userSnap.exists()) {
+                    const data = userSnap.data();
+                    
+                    // Update UI and Cache
+                    const name = data.name || "User";
+                    const memory = data.memory || "No core memory set. Tap edit to add instructions for Quan AI.";
+                    
+                    displayName.innerText = name;
+                    memoryDisplay.innerText = memory;
+                    memoryInput.value = data.memory || ""; // Populate input if it exists
+                    
+                    localStorage.setItem('quan_user_name', name);
+                    localStorage.setItem('quan_user_memory', memory);
+                    
+                    // Profile Pic Fallback (If your app updates photoURL via Auth)
+                    if (user.photoURL && !cachedPhoto) {
+                        profileImg.src = user.photoURL;
+                    }
+                }
+            } else {
+                window.location.replace("login.html");
+            }
+        });
+
+        // 3. MODAL & NATIVE BACK BUTTON LOGIC
+        function openModal() {
+            editModal.classList.add('open');
+            // Push state to browser history so the back button knows we are in a modal
+            history.pushState({ modalOpen: true }, "");
+            memoryInput.focus();
+        }
+
+        function closeModal() {
+            editModal.classList.remove('open');
+            memoryInput.blur();
+        }
+
+        openEditBtn.addEventListener('click', openModal);
+
+        // If the user clicks our custom X button, trigger the back action to keep history clean
+        closeModalBtn.addEventListener('click', () => {
+            if (history.state && history.state.modalOpen) {
+                history.back(); // This will trigger 'popstate' naturally
+            } else {
+                closeModal();
+            }
+        });
+
+        // The magic listener that catches the Native Android swipe-back or physical back button
+        window.addEventListener('popstate', (e) => {
+            if (editModal.classList.contains('open')) {
+                closeModal();
+            }
+        });
+
+        // 4. SAVE MEMORY LOGIC
+        saveMemoryBtn.addEventListener('click', async () => {
+            if (!currentUser) return;
+            
+            const newMemory = memoryInput.value.trim();
+            saveMemoryBtn.innerText = "Saving...";
+            saveMemoryBtn.disabled = true;
+
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                await setDoc(userRef, { memory: newMemory }, { merge: true });
+                
+                // Update UI and Cache
+                memoryDisplay.innerText = newMemory || "No core memory set. Tap edit to add instructions for Quan AI.";
+                localStorage.setItem('quan_user_memory', newMemory);
+                
+                showToast("Memory Updated");
+                
+                // Close modal via history API
+                if (history.state && history.state.modalOpen) {
+                    history.back();
+                } else {
+                    closeModal();
+                }
+            } catch (error) {
+                console.error("Error saving memory:", error);
+                showToast("Error saving memory.");
+            } finally {
+                saveMemoryBtn.innerText = "Save";
+                saveMemoryBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
