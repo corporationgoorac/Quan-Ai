@@ -1083,7 +1083,6 @@
            ----------------------------------------------------------------------------------------- */
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        // ADDED: Imported 'limit' exactly as requested for smooth pagination
         import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // DOM Elements
@@ -1134,7 +1133,6 @@
         let selectedChatIdForModal = null; 
         let cachedChatExportText = ""; 
         
-        // NEW ADDITIONS: Sidebar Pagination States
         let chatHistoryLimit = 15;
         let sidebarUnsubscribe = null;
         let hasMoreChats = true;
@@ -1147,10 +1145,9 @@
         window.typedMessages = new Set(); 
         window.isInitialChatLoad = true; 
         window.activeActionsEl = null; 
-        window.justSentPrompt = false; // Ensures perfect prompt scrolling
+        window.justSentPrompt = false; 
 
-        // 0ms Apply Cached Logo & Profile Pic (Now handled synchronously in the HTML body to prevent module defer delay)
-        // Kept here for redundancy, but the inline scripts in the DOM handle it instantly now.
+        // 0ms Apply Cached Logo & Profile Pic
         const cachedLogo = localStorage.getItem('quan_logo_base64');
         if(cachedLogo) {
             document.getElementById('welcome-logo').src = cachedLogo;
@@ -1163,7 +1160,7 @@
         }
 
         /* ==========================================================================
-           GLOBAL UX FEATURES (Haptics, Toasts, Greetings, Network)
+           GLOBAL UX FEATURES
            ========================================================================== */
         window.vibrateLight = () => { if(navigator.vibrate) navigator.vibrate(2); };
         window.vibrateMedium = () => { if(navigator.vibrate) navigator.vibrate(20); };
@@ -1223,15 +1220,12 @@
                 welcomeGreeting.innerHTML = '<span style="color:#ff4500;">You are currently offline</span>';
                 return;
             }
-            // Reverted back to the standard static greeting. 
-            // Removed the dynamic time/name logic that caused the text to flicker.
             welcomeGreeting.innerHTML = 'How can I help you today?';
-            
             chatInput.placeholder = "Message Quan...";
         };
 
         /* ==========================================================================
-           ADVANCED MARKDOWN FORMATTER (WITH MAC-STYLE CODE BLOCKS)
+           ADVANCED MARKDOWN FORMATTER 
            ========================================================================== */
         window.formatMarkdown = function(text) {
             if(!text) return "";
@@ -2134,36 +2128,6 @@
                     localStorage.setItem('chat_html_' + chatId, messagesContainer.innerHTML);
                 }
 
-                // --- ORIGINAL SCROLL LOGIC COMMENTED OUT TO PREVENT JITTER ---
-                /* const applyScrollLock = () => {
-                    if (initialLoad) {
-                        if (lastUserMessageEl) {
-                            const headerOffset = 70; 
-                            chatFlow.scrollTo({
-                                top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
-                                behavior: 'auto'
-                            });
-                        } else {
-                            chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'auto' });
-                        }
-                    } else if (window.justSentPrompt || (messagesList.length > 0 && messagesList[messagesList.length - 1].role === 'user')) {
-                        if (lastUserMessageEl) {
-                            const headerOffset = 70; 
-                            chatFlow.scrollTo({
-                                top: Math.max(0, lastUserMessageEl.offsetTop - headerOffset),
-                                behavior: 'smooth'
-                            });
-                        }
-                    }
-                };
-                applyScrollLock(); // Instant lock
-                setTimeout(applyScrollLock, 50); // Catch layout shift
-                setTimeout(() => { applyScrollLock(); window.justSentPrompt = false; }, 150); // Final settle
-                */
-
-                // +++ NEW SMOOTH ANTI-JITTER SCROLL LOGIC +++
-                // This waits for the browser layout engine to fully process the DOM wipe
-                // and the textarea shrinking BEFORE attempting to scroll the page.
                 const smoothScrollToBottom = () => {
                     if (initialLoad) {
                         chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'auto' });
@@ -2173,9 +2137,6 @@
                     window.justSentPrompt = false;
                 };
 
-                // By nesting two requestAnimationFrames, we guarantee that the browser has painted
-                // the new empty textarea state and the new message bubble before we scroll to it.
-                // This eliminates the jitter, stutter, and bouncing entirely.
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         smoothScrollToBottom();
@@ -2185,18 +2146,15 @@
             });
         }
 
-        // NEW ADDITION: The perfectly rewritten loadSidebarHistory with limit integration
         function loadSidebarHistory() {
-            if (sidebarUnsubscribe) sidebarUnsubscribe(); // Unsubscribe to prevent memory leaks
+            if (sidebarUnsubscribe) sidebarUnsubscribe(); 
             isLoadingChats = true;
 
             const chatsRef = collection(db, `users/${currentUser.uid}/chats`);
-            // ADDED: The secure limit(chatHistoryLimit) parameter
             const q = query(chatsRef, orderBy("updatedAt", "desc"), limit(chatHistoryLimit)); 
 
             sidebarUnsubscribe = onSnapshot(q, (snapshot) => {
                 isLoadingChats = false;
-                // Determine if we've hit the end of the history
                 hasMoreChats = snapshot.docs.length >= chatHistoryLimit;
                 
                 const historyList = document.getElementById('chat-history-list');
@@ -2315,17 +2273,15 @@
             });
         }
 
-        // NEW ADDITION: Infinite Scroll Trigger for the Sidebar
         const sidebarHistoryList = document.getElementById('chat-history-list');
         sidebarHistoryList.addEventListener('scroll', function() {
-            // When user scrolls within 20px of the bottom of the list
             if (!isLoadingChats && hasMoreChats) {
                 if (this.scrollTop + this.clientHeight >= this.scrollHeight - 20) {
-                    chatHistoryLimit += 15; // Bump limit by 15
-                    loadSidebarHistory(); // Re-trigger smooth load
+                    chatHistoryLimit += 15; 
+                    loadSidebarHistory(); 
                 }
             }
-        }, { passive: true }); // passive ensures buttery smooth native scrolling
+        }, { passive: true }); 
 
     </script>
     
@@ -2363,14 +2319,52 @@
     </script>
 
     <script>
+        // PERFECTED PWA INSTALL BANNER LOGIC
         let deferredPrompt;
         const installBanner = document.getElementById('install-banner');
         const installBtn = document.getElementById('install-btn');
         const closeInstallBtn = document.getElementById('close-install-btn');
 
         const isInstallDismissed = localStorage.getItem('quan_install_dismissed');
-        if (!isInstallDismissed) {
-            // Install prompt logic goes here
+
+        // Check if app is already running in standalone (installed) mode
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+
+        if (!isInstallDismissed && !isStandalone) {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevent the mini-infobar from appearing on mobile
+                e.preventDefault();
+                // Stash the event so it can be triggered later.
+                deferredPrompt = e;
+                // Show our custom UI
+                setTimeout(() => {
+                    installBanner.classList.add('visible');
+                }, 2000); // Slight delay for better UX
+            });
+
+            installBtn.addEventListener('click', async () => {
+                // Hide the app provided install promotion
+                installBanner.classList.remove('visible');
+                // Show the install prompt
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    // Wait for the user to respond to the prompt
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                        localStorage.setItem('quan_install_dismissed', 'true'); // Don't show again if installed
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                    // We've used the prompt, and can't use it again, throw it away
+                    deferredPrompt = null;
+                }
+            });
+
+            closeInstallBtn.addEventListener('click', () => {
+                installBanner.classList.remove('visible');
+                localStorage.setItem('quan_install_dismissed', 'true');
+            });
         }
     </script>
 </body>
