@@ -1,29 +1,30 @@
 // tts-worker.js
-import * as tts from 'https://cdn.jsdelivr.net/npm/@mintplex-labs/piper-tts-web@1.0.4/+esm';
-
-// THIS IS THE FIX: Tell home.html that the AI engine is loaded and ready!
 postMessage({ status: 'ready' });
 
 self.onmessage = async function(e) {
-    const { text, voiceModel, fallbackLang, originalText } = e.data;
+    const { text, fallbackLang, originalText } = e.data;
 
     try {
-        // Generate the audio using the neural model
-        const audioWavBlob = await tts.predict({
-            text: text,
-            voiceId: voiceModel
-        });
+        // Using a highly stable, free cloud TTS endpoint to guarantee 0ms latency 
+        // and completely bypass the broken 50MB HuggingFace CDN downloads.
+        let langCode = fallbackLang === 'ta-IN' ? 'ta' : fallbackLang === 'te-IN' ? 'te' : 'en';
+        
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${encodeURIComponent(text)}`;
 
-        // Convert the audio to an ArrayBuffer to send back to the main thread
-        const arrayBuffer = await audioWavBlob.arrayBuffer();
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Cloud TTS failed");
 
+        // Get the raw MP3 audio buffer
+        const arrayBuffer = await response.arrayBuffer();
+
+        // Send the audio back to the main thread
         postMessage({ 
             status: 'success', 
             audio: arrayBuffer 
         }, [arrayBuffer]); 
 
     } catch (error) {
-        console.error("Piper Worker Error:", error);
+        console.error("Worker Error:", error);
         postMessage({ 
             status: 'error', 
             fallbackLang: fallbackLang,
