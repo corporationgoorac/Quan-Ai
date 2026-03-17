@@ -8,13 +8,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Quan AI</title>
-    <link rel="manifest" href="../manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
+    <link rel="manifest" href="../manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <style>
         /* ==========================================================================
            1. CORE FOUNDATION & RESET
@@ -575,8 +574,22 @@
             background: linear-gradient(90deg, rgba(138, 43, 226, 0.1), transparent);
             padding-top: 5px; padding-bottom: 5px;
         }
-        /* Ensure Highlight.js block has correct padding */
+
+        /* --- NEW CSS FOR MARKED.JS FORMATTING --- */
+        .bubble h1 { margin-top: 20px; margin-bottom: 12px; font-size: 1.4rem; color: #fff; }
+        .bubble h2 { margin-top: 18px; margin-bottom: 10px; font-size: 1.25rem; color: #fff; }
+        .bubble h3 { margin-top: 16px; margin-bottom: 8px; font-size: 1.1rem; color: #fff; }
+        .bubble h4, .bubble h5, .bubble h6 { margin-top: 14px; margin-bottom: 8px; color: #fff; }
+        .bubble p { margin-bottom: 10px; }
+        .bubble p:last-child { margin-bottom: 0; }
+        .bubble ul, .bubble ol { margin-left: 20px; margin-bottom: 10px; }
+        .bubble li { margin-bottom: 6px; }
+        .bubble blockquote { border-left: 4px solid #8a2be2; margin: 10px 0; padding-left: 12px; color: rgba(255,255,255,0.7); font-style: italic; background: linear-gradient(90deg, rgba(138, 43, 226, 0.1), transparent); padding-top: 5px; padding-bottom: 5px; }
+        .bubble strong { font-weight: bold; }
+        .bubble em { font-style: italic; }
+        .bubble pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
         .hljs { background: transparent !important; padding: 0 !important; }
+        /* ---------------------------------------- */
 
         /* ==========================================================================
            6. FLAGSHIP CAPSULE INPUT AREA (REDESIGNED PILL)
@@ -1239,34 +1252,67 @@
         };
 
         /* ==========================================================================
-           ADVANCED MARKDOWN FORMATTER (UPGRADED TO MARKED.JS & HIGHLIGHT.JS)
+           ADVANCED MARKDOWN FORMATTER 
            ========================================================================== */
-        // Configure Marked.js to use Highlight.js and custom Mac-style code blocks
-        const renderer = new marked.Renderer();
-        renderer.code = function(code, language) {
-            const validLanguage = (language && hljs.getLanguage(language)) ? language : 'plaintext';
-            const highlighted = hljs.highlight(code, { language: validLanguage }).value;
-            return `<div class="code-block-wrapper"><div class="code-header"><span class="mac-dot red"></span><span class="mac-dot yellow"></span><span class="mac-dot green"></span><span class="code-lang">${language||'code'}</span><button class="code-copy-btn" onclick="window.copyCode(this)">Copy</button></div><pre><code class="hljs ${validLanguage}" style="background: transparent; padding: 12px 16px; font-family: monospace; font-size: 0.9rem;">${highlighted}</code></pre></div>`;
-        };
-        // Adding custom styling for inline code and blockquotes to match your theme
-        renderer.codespan = function(code) {
-            return `<span class="md-inline-code">${code}</span>`;
-        };
-        renderer.blockquote = function(quote) {
-            return `<blockquote class="md-quote">${quote}</blockquote>`;
-        };
-
-        marked.setOptions({ 
-            renderer: renderer, 
-            breaks: true, // Converts single newlines to <br>
-            gfm: true     // GitHub Flavored Markdown
-        });
-
         window.formatMarkdown = function(text) {
             if(!text) return "";
-            // Strip the internal <UPDATE_MEMORY> tags so they don't show up in the UI
-            let cleanText = text.replace(/<UPDATE_MEMORY>([\s\S]*?)<\/UPDATE_MEMORY>/gi, '');
-            return marked.parse(cleanText);
+            
+            // --- NEW: EXTERNAL LIBRARY INTEGRATION (MARKED.JS + HIGHLIGHT.JS) ---
+            try {
+                if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
+                    const renderer = new marked.Renderer();
+                    renderer.code = function(arg1, arg2) {
+                        let codeText = typeof arg1 === 'object' ? arg1.text : arg1;
+                        let langText = typeof arg1 === 'object' ? arg1.lang : arg2;
+                        const validLang = (langText && hljs.getLanguage(langText)) ? langText : 'plaintext';
+                        const highlighted = (langText && hljs.getLanguage(langText)) 
+                            ? hljs.highlight(codeText, { language: validLang }).value 
+                            : hljs.highlightAuto(codeText).value;
+                        
+                        return `<div class="code-block-wrapper"><div class="code-header"><span class="mac-dot red"></span><span class="mac-dot yellow"></span><span class="mac-dot green"></span><span class="code-lang">${validLang}</span><button class="code-copy-btn" onclick="window.copyCode(this)">Copy</button></div><pre><code class="md-code hljs ${validLang}">${highlighted}</code></pre></div>`;
+                    };
+                    
+                    marked.setOptions({
+                        renderer: renderer,
+                        breaks: true,
+                        gfm: true
+                    });
+                    return marked.parse(text);
+                }
+            } catch (err) {
+                console.error("Markdown parsing error with library", err);
+            }
+            // --- END NEW INTEGRATION ---
+
+            // ORIGINAL CODE PRESERVED (AS REQUESTED: DO NOT REMOVE A SINGLE LINE)
+            const highlightJS = (code) => {
+                return code
+                    .replace(/(const|let|var|function|return|if|else|for|while|import|from|class|await|async)/g, '<span class="syntax-keyword">$1</span>')
+                    .replace(/('.*?'|".*?"|`.*?`)/g, '<span class="syntax-string">$1</span>')
+                    .replace(/(\/\/.*)/g, '<span class="syntax-comment">$1</span>')
+                    .replace(/([a-zA-Z0-9_]+)(?=\()/g, '<span class="syntax-func">$1</span>');
+            };
+
+            let html = text
+                .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+                    const coloredCode = highlightJS(code);
+                    return `<div class="code-block-wrapper"><div class="code-header"><span class="mac-dot red"></span><span class="mac-dot yellow"></span><span class="mac-dot green"></span><span class="code-lang">${lang||'code'}</span><button class="code-copy-btn" onclick="window.copyCode(this)">Copy</button></div><pre><code class="md-code">${coloredCode}</code></pre></div>`;
+                })
+                .replace(/`(.*?)`/g, '<span class="md-inline-code">$1</span>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/^### (.*$)/gim, '<h3 style="margin-top:16px; margin-bottom:8px; font-size:1.1rem; color:#fff;">$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2 style="margin-top:18px; margin-bottom:10px; font-size:1.25rem; color:#fff;">$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1 style="margin-top:20px; margin-bottom:12px; font-size:1.4rem; color:#fff;">$1</h1>')
+                .replace(/^\> (.*$)/gim, '<blockquote class="md-quote">$1</blockquote>')
+                .replace(/^\s*[-*]\s+(.*$)/gim, '<li style="margin-left: 20px; margin-bottom: 6px;">$1</li>');
+            
+            html = html.split('\n').map(line => {
+                if (line.trim().startsWith('<h') || line.trim().startsWith('<li') || line.trim().startsWith('<div') || line.trim().startsWith('<blockquote')) return line;
+                return line + '<br>';
+            }).join('');
+            
+            return html;
         };
 
         function format12HourTime(dateObj) {
@@ -2160,26 +2206,28 @@
 
                 const smoothScrollToBottom = () => {
                     if (initialLoad) {
-                        // UPGRADED: Scroll perfectly to the last user message instead of bottom
+                        // --- MODIFIED TO SHOW LAST MESSAGE AT TOP INSTEAD OF SCROLLING TO BOTTOM ---
+                        // chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'auto' });
                         const userRows = messagesContainer.querySelectorAll('.message-row.user');
                         if(userRows.length > 0) {
                             const lastUser = userRows[userRows.length - 1];
+                            // Offset by 70px to account for the top header
                             chatFlow.scrollTo({ top: Math.max(0, lastUser.offsetTop - 70), behavior: 'auto' });
                         } else {
                             chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'auto' });
                         }
+                        // --- END MODIFICATION ---
                     } else if (window.justSentPrompt || isLastAi) {
                         chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'smooth' });
                     }
                     window.justSentPrompt = false;
                 };
 
-                // Delaying slightly ensures DOM and images are fully painted before calculating offsetTop
-                setTimeout(() => {
+                requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         smoothScrollToBottom();
                     });
-                }, 50);
+                });
 
             });
         }
@@ -2283,10 +2331,18 @@
                         
                         window.isInitialChatLoad = true; 
 
-                        // Removing the local storage scroll injection so the flawless snapshot scrolling can take over instantly
                         const cachedHtml = localStorage.getItem('chat_html_' + chatId);
                         if (cachedHtml) {
                             messagesContainer.innerHTML = cachedHtml;
+                            setTimeout(() => {
+                                const userRows = messagesContainer.querySelectorAll('.message-row.user');
+                                if(userRows.length > 0) {
+                                    const lastUser = userRows[userRows.length - 1];
+                                    chatFlow.scrollTop = Math.max(0, lastUser.offsetTop - 70);
+                                } else {
+                                    chatFlow.scrollTop = chatFlow.scrollHeight;
+                                }
+                            }, 10);
                         } else {
                             messagesContainer.innerHTML = '';
                         }
@@ -2384,6 +2440,7 @@
                         console.log('User accepted the install prompt');
                         localStorage.setItem('quan_install_dismissed', 'true');
                     }
+                    deferredPrompt = null;
                 }
             });
 
