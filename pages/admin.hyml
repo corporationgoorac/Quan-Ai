@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0c14">
+    <title>Quan AI - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================================================
+           1. CORE FOUNDATION & RESET
+           ========================================================================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+
+        html, body {
+            height: 100vh; height: 100dvh; width: 100vw; overflow: hidden;
+            background-color: #0a0c14; color: #ffffff; font-family: 'Inter', sans-serif;
+            position: fixed; left: 0; top: 0; overscroll-behavior: none;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        .svg-icon { width: 24px; height: 24px; fill: currentColor; display: inline-block; vertical-align: middle; }
+
+        /* ==========================================================================
+           2. SCREENS & OVERLAYS
+           ========================================================================== */
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #0a0c14; z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .screen.active { opacity: 1; pointer-events: auto; }
+
+        /* Loader & Access Denied */
+        .loader-spinner { width: 40px; height: 40px; border: 3px solid rgba(138, 43, 226, 0.3); border-top-color: #ff4500; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .denied-text { color: #ff4500; font-size: 1.5rem; font-weight: 600; margin-top: 20px; text-align: center; }
+        .denied-sub { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-top: 10px; }
+
+        /* ==========================================================================
+           3. PIN PAD SCREEN
+           ========================================================================== */
+        .pin-title { font-size: 1.2rem; font-weight: 500; margin-bottom: 30px; letter-spacing: 1px; color: rgba(255,255,255,0.8); }
+        .pin-dots { display: flex; gap: 15px; margin-bottom: 50px; }
+        .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); transition: all 0.2s; }
+        .pin-dot.filled { background: #8a2be2; border-color: #8a2be2; box-shadow: 0 0 10px rgba(138, 43, 226, 0.5); }
+        .pin-dot.error { background: #ff4500; border-color: #ff4500; box-shadow: 0 0 10px rgba(255, 69, 0, 0.5); }
+        
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 280px; }
+        .num-btn { width: 75px; height: 75px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; font-size: 1.8rem; font-weight: 300; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.1s; }
+        .num-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
+        .num-btn.empty { background: transparent; border: none; pointer-events: none; }
+        .num-btn.action { font-size: 1.2rem; color: #ff4500; background: transparent; border: none; }
+
+        /* ==========================================================================
+           4. DASHBOARD MAIN 
+           ========================================================================== */
+        #dashboard-screen { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; z-index: 5; }
+        
+        header { width: 100%; height: calc(60px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; padding-top: env(safe-area-inset-top); background: #0a0c14; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; z-index: 20; }
+        .header-title { font-size: 1.1rem; font-weight: 600; background: linear-gradient(90deg, #8a2be2, #ff4500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        
+        .load-all-btn { background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+        .load-all-btn:active { transform: scale(0.95); }
+
+        .search-container { width: 100%; padding: 15px 20px; background: #0a0c14; position: relative; z-index: 15; flex-shrink: 0; }
+        .search-box { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 15px 12px 40px; color: white; font-size: 0.95rem; outline: none; transition: border-color 0.2s; user-select: text; -webkit-user-select: text; }
+        .search-box:focus { border-color: #8a2be2; }
+        .search-icon { position: absolute; left: 32px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.4); pointer-events: none; width: 18px; height: 18px; }
+
+        .users-list { width: 100%; flex: 1; overflow-y: auto; padding: 0 20px 100px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .user-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: background 0.2s; }
+        .user-card:active { background: rgba(255,255,255,0.08); }
+        .user-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #1a1a24; border: 1px solid rgba(138,43,226,0.3); }
+        .user-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .user-name { font-size: 1rem; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; }
+        .user-uid { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 4px; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .admin-badge { background: #ff4500; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
+
+        /* ==========================================================================
+           5. SLIDE-IN MODAL (USER EDITOR)
+           ========================================================================== */
+        #user-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0d0f1a; z-index: 5000; transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column;
+        }
+        #user-modal.open { transform: translateX(0); }
+
+        .modal-header { height: calc(60px + env(safe-area-inset-top)); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; padding-top: env(safe-area-inset-top); border-bottom: 1px solid rgba(255,255,255,0.05); background: #0a0c14; }
+        .back-btn { background: none; border: none; color: white; display: flex; align-items: center; gap: 5px; font-size: 1rem; cursor: pointer; }
+        .save-btn { background: linear-gradient(90deg, #8a2be2, #ff4500); border: none; color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .save-btn:active { transform: scale(0.95); }
+
+        .modal-body { flex: 1; overflow-y: auto; padding: 30px 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .modal-avatar-wrapper { position: relative; margin-bottom: 20px; }
+        .modal-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #8a2be2; background: #1a1a24; }
+        
+        .form-group { width: 100%; margin-bottom: 20px; display: flex; flex-direction: column; align-items: flex-start; }
+        .form-label { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .form-input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px; color: white; font-size: 1rem; outline: none; transition: border-color 0.2s; user-select: text; -webkit-user-select: text; font-family: inherit; }
+        .form-input:focus { border-color: #8a2be2; background: rgba(255,255,255,0.05); }
+        textarea.form-input { min-height: 150px; resize: vertical; line-height: 1.5; }
+
+        /* Custom Toggle Switch */
+        .toggle-wrapper { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-top: 10px; }
+        .toggle-text { font-size: 1rem; font-weight: 500; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        input:checked + .slider { background-color: #ff4500; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(100px); background: #27c93f; color: #000; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.5); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 9999; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.error { background: #ff4500; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen" class="screen active">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <div id="denied-screen" class="screen">
+        <svg class="svg-icon" style="width: 60px; height: 60px; color:#ff4500;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <div class="denied-text">Access Denied</div>
+        <div class="denied-sub">You do not have administrative privileges.</div>
+        <button onclick="window.location.href='home.html'" style="margin-top:30px; background:rgba(255,255,255,0.1); border:none; color:white; padding:10px 20px; border-radius:20px; cursor:pointer;">Return Home</button>
+    </div>
+
+    <div id="pin-screen" class="screen">
+        <div class="pin-title">Enter Admin PIN</div>
+        <div class="pin-dots">
+            <div class="pin-dot" id="dot-1"></div>
+            <div class="pin-dot" id="dot-2"></div>
+            <div class="pin-dot" id="dot-3"></div>
+            <div class="pin-dot" id="dot-4"></div>
+        </div>
+        <div class="numpad">
+            <button class="num-btn" onclick="enterPin('1')">1</button>
+            <button class="num-btn" onclick="enterPin('2')">2</button>
+            <button class="num-btn" onclick="enterPin('3')">3</button>
+            <button class="num-btn" onclick="enterPin('4')">4</button>
+            <button class="num-btn" onclick="enterPin('5')">5</button>
+            <button class="num-btn" onclick="enterPin('6')">6</button>
+            <button class="num-btn" onclick="enterPin('7')">7</button>
+            <button class="num-btn" onclick="enterPin('8')">8</button>
+            <button class="num-btn" onclick="enterPin('9')">9</button>
+            <button class="num-btn empty"></button>
+            <button class="num-btn" onclick="enterPin('0')">0</button>
+            <button class="num-btn action" onclick="deletePin()">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="dashboard-screen" class="screen">
+        <header>
+            <div class="header-title">Quan AI Admin</div>
+            <div class="header-right">
+                <button class="load-all-btn" id="load-all-btn" onclick="loadAllUsersData()">
+                    <svg class="svg-icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    <span id="user-count-display">Load All</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="search-container">
+            <svg class="svg-icon search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" id="search-input" class="search-box" placeholder="Search users by name..." autocomplete="off">
+        </div>
+
+        <div class="users-list" id="users-list-container">
+            </div>
+    </div>
+
+    <div id="user-modal">
+        <div class="modal-header">
+            <button class="back-btn" onclick="closeModal()">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                Back
+            </button>
+            <button class="save-btn" id="save-user-btn" onclick="saveUserData()">Save</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="modal-avatar-wrapper">
+                <img src="" alt="Avatar" class="modal-avatar" id="edit-avatar-preview">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">UID</label>
+                <input type="text" id="edit-uid" class="form-input" disabled style="color:rgba(255,255,255,0.4); background: transparent; border: none; padding: 0;">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="edit-name" class="form-input" placeholder="User's Name">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Photo URL</label>
+                <input type="text" id="edit-photo" class="form-input" placeholder="https://...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Core Memory</label>
+                <textarea id="edit-memory" class="form-input" placeholder="Permanent facts about the user..."></textarea>
+            </div>
+
+            <div class="toggle-wrapper">
+                <span class="toggle-text">Grant Admin Access</span>
+                <label class="switch">
+                    <input type="checkbox" id="edit-admin-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div style="height: 50px; width: 100%;"></div> </div>
+    </div>
+
+    <div id="global-toast" class="toast">Saved!</div>
+
+    <script type="module">
+        import { auth, db } from '../config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+        // DOM Elements
+        const authScreen = document.getElementById('auth-screen');
+        const deniedScreen = document.getElementById('denied-screen');
+        const pinScreen = document.getElementById('pin-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const dots = [document.getElementById('dot-1'), document.getElementById('dot-2'), document.getElementById('dot-3'), document.getElementById('dot-4')];
+        const usersListContainer = document.getElementById('users-list-container');
+        const searchInput = document.getElementById('search-input');
+        const userCountDisplay = document.getElementById('user-count-display');
+        
+        // Modal Elements
+        const userModal = document.getElementById('user-modal');
+        const editUid = document.getElementById('edit-uid');
+        const editName = document.getElementById('edit-name');
+        const editPhoto = document.getElementById('edit-photo');
+        const editMemory = document.getElementById('edit-memory');
+        const editAdminToggle = document.getElementById('edit-admin-toggle');
+        const editAvatarPreview = document.getElementById('edit-avatar-preview');
+        const saveUserBtn = document.getElementById('save-user-btn');
+
+        // State Variables
+        let currentUserAdmin = null;
+        let allFetchedUsers = []; 
+        let hasFetchedAll = false;
+        let activeEditUserId = null;
+
+        // UX Helper
+        window.vibrate = (ms) => { if(navigator.vibrate) navigator.vibrate(ms); };
+        window.showToast = (msg, isError = false) => {
+            const toast = document.getElementById('global-toast');
+            toast.innerText = msg;
+            toast.className = 'toast show ' + (isError ? 'error' : '');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        };
+
+        // =========================================================
+        // 1. SECURITY ROUTING
+        // =========================================================
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const docSnap = await getDoc(doc(db, 'users', user.uid));
+                    if (docSnap.exists() && docSnap.data().admin === true) {
+                        currentUserAdmin = user;
+                        authScreen.classList.remove('active');
+                        pinScreen.classList.add('active'); // Show PIN pad
+                    } else {
+                        authScreen.classList.remove('active');
+                        deniedScreen.classList.add('active');
+                    }
+                } catch(e) {
+                    console.error(e);
+                    authScreen.classList.remove('active');
+                    deniedScreen.classList.add('active');
+                }
+            } else {
+                window.location.replace("login.html");
+            }
+        });
+
+        // =========================================================
+        // 2. PIN PAD LOGIC (Target: 2502)
+        // =========================================================
+        let currentPin = '';
+        const TARGET_PIN = '2502';
+
+        window.enterPin = (num) => {
+            if (currentPin.length < 4) {
+                currentPin += num;
+                window.vibrate(10);
+                updatePinUI();
+                if (currentPin.length === 4) verifyPin();
+            }
+        };
+
+        window.deletePin = () => {
+            if (currentPin.length > 0) {
+                currentPin = currentPin.slice(0, -1);
+                window.vibrate(10);
+                updatePinUI();
+            }
+        };
+
+        function updatePinUI() {
+            dots.forEach((dot, index) => {
+                dot.className = 'pin-dot';
+                if (index < currentPin.length) dot.classList.add('filled');
+            });
+        }
+
+        function verifyPin() {
+            if (currentPin === TARGET_PIN) {
+                window.vibrate([15, 20, 15]); // Success
+                setTimeout(() => {
+                    pinScreen.classList.remove('active');
+                    dashboardScreen.classList.add('active');
+                    loadInitialUsers(); // Load the 10 users
+                }, 300);
+            } else {
+                window.vibrate(50); // Error
+                dots.forEach(dot => dot.classList.add('error'));
+                setTimeout(() => {
+                    currentPin = '';
+                    updatePinUI();
+                }, 500);
+            }
+        }
+
+        // =========================================================
+        // 3. DASHBOARD & DATA FETCHING
+        // =========================================================
+        
+        // Initial limit load
+        async function loadInitialUsers() {
+            try {
+                // Fetch latest 10 users assuming there is a timestamp, or just 10 users
+                const q = query(collection(db, 'users'), limit(10));
+                const querySnapshot = await getDocs(q);
+                
+                allFetchedUsers = [];
+                querySnapshot.forEach((doc) => {
+                    allFetchedUsers.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderUsers(allFetchedUsers);
+            } catch(e) {
+                console.error("Error loading initial users:", e);
+                window.showToast("Failed to load users", true);
+            }
+        }
+
+        // Load all users for global search & counting
+        window.loadAllUsersData = async () => {
+            const btn = document.getElementById('load-all-btn');
+            userCountDisplay.innerText = "Loading...";
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const querySnapshot = await getDocs(collection(db, 'users'));
+                allFetchedUsers = [];
+                querySnapshot.forEach((doc) => {
+                    allFetchedUsers.push({ id: doc.id, ...doc.data() });
+                });
+                
+                hasFetchedAll = true;
+                userCountDisplay.innerText = `Total: ${allFetchedUsers.length}`;
+                renderUsers(allFetchedUsers);
+                window.showToast("All database users loaded!");
+            } catch(e) {
+                console.error("Error loading all users:", e);
+                userCountDisplay.innerText = "Load All";
+                btn.style.pointerEvents = 'auto';
+                window.showToast("Fetch failed", true);
+            }
+        };
+
+        // Render List UI
+        function renderUsers(usersArray) {
+            usersListContainer.innerHTML = '';
+            
+            if(usersArray.length === 0) {
+                usersListContainer.innerHTML = `<div style="text-align:center; color:rgba(255,255,255,0.4); padding:30px;">No users found</div>`;
+                return;
+            }
+
+            usersArray.forEach(user => {
+                const name = user.name || 'Unknown User';
+                const photo = user.photoURL || '../images/icon.png';
+                const isAdmin = user.admin === true;
+
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.onclick = () => openUserModal(user);
+                
+                card.innerHTML = `
+                    <img src="${photo}" alt="Pic" class="user-avatar" onerror="this.src='../images/icon.png'">
+                    <div class="user-info">
+                        <div class="user-name">
+                            ${name}
+                            ${isAdmin ? `<span class="admin-badge">Admin</span>` : ''}
+                        </div>
+                        <div class="user-uid">${user.id}</div>
+                    </div>
+                `;
+                usersListContainer.appendChild(card);
+            });
+        }
+
+        // Real-time Search 
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            // Note: If hasFetchedAll is false, this only searches the initially loaded 10 users.
+            // As instructed, users must hit "Load All" to get everything first for a full db search.
+            const filtered = allFetchedUsers.filter(u => {
+                const n = (u.name || "").toLowerCase();
+                const id = u.id.toLowerCase();
+                return n.includes(term) || id.includes(term);
+            });
+            renderUsers(filtered);
+        });
+
+        // =========================================================
+        // 4. SLIDE-IN MODAL LOGIC (MOBILE BACKABLE)
+        // =========================================================
+        
+        window.openUserModal = (user) => {
+            activeEditUserId = user.id;
+            
+            // Populate Fields
+            editUid.value = user.id;
+            editName.value = user.name || "";
+            editPhoto.value = user.photoURL || "";
+            editMemory.value = user.memory || "";
+            editAdminToggle.checked = user.admin === true;
+            editAvatarPreview.src = user.photoURL || '../images/icon.png';
+
+            // Realtime image update on paste
+            editPhoto.oninput = () => { editAvatarPreview.src = editPhoto.value || '../images/icon.png'; };
+            editPhoto.onerror = () => { editAvatarPreview.src = '../images/icon.png'; };
+
+            // Open Modal with History API
+            userModal.classList.add('open');
+            history.pushState({ adminModalOpen: true }, "");
+            window.vibrate(10);
+        };
+
+        window.closeModal = () => {
+            userModal.classList.remove('open');
+            activeEditUserId = null;
+        };
+
+        // Handle native back button on mobile
+        window.addEventListener('popstate', (e) => {
+            if (userModal.classList.contains('open')) {
+                userModal.classList.remove('open');
+                activeEditUserId = null;
+            }
+        });
+
+        // Save User Data to Firestore
+        window.saveUserData = async () => {
+            if(!activeEditUserId) return;
+            
+            saveUserBtn.innerText = "Saving...";
+            saveUserBtn.style.opacity = "0.7";
+            saveUserBtn.style.pointerEvents = "none";
+
+            const updatedData = {
+                name: editName.value.trim(),
+                photoURL: editPhoto.value.trim(),
+                memory: editMemory.value.trim(),
+                admin: editAdminToggle.checked
+            };
+
+            try {
+                await updateDoc(doc(db, 'users', activeEditUserId), updatedData);
+                
+                // Update Local Array so UI reflects immediately
+                const userIndex = allFetchedUsers.findIndex(u => u.id === activeEditUserId);
+                if(userIndex !== -1) {
+                    allFetchedUsers[userIndex] = { ...allFetchedUsers[userIndex], ...updatedData };
+                }
+                
+                // Re-render list matching search term if any
+                const term = searchInput.value.toLowerCase();
+                const filtered = allFetchedUsers.filter(u => (u.name || "").toLowerCase().includes(term));
+                renderUsers(filtered);
+
+                window.showToast("User successfully updated!");
+                window.vibrate([15, 20, 15]);
+                
+                // Close modal and clean history
+                closeModal();
+                if (history.state && history.state.adminModalOpen) history.back();
+                
+            } catch(e) {
+                console.error("Save Error:", e);
+                window.showToast("Failed to save changes", true);
+            } finally {
+                saveUserBtn.innerText = "Save";
+                saveUserBtn.style.opacity = "1";
+                saveUserBtn.style.pointerEvents = "auto";
+            }
+        };
+
+    </script>
+</body>
+</html>
