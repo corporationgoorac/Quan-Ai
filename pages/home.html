@@ -16,10 +16,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
-
     <link rel="manifest" href="../manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <style>
@@ -1362,9 +1358,7 @@
             <div class="camera-modes">
                 <span class="mode-item active" data-mode="standard">Photo</span>
                 <span class="mode-item" data-mode="document">Document</span>
-                <span class="mode-item" data-mode="face">Face</span>
-                <span class="mode-item" data-mode="object">Object</span>
-            </div>
+                </div>
             
             <div class="shutter-container">
                 <button class="camera-secondary-btn" id="camera-flip-btn">
@@ -2828,12 +2822,13 @@
             await initCameraStream();
             
             // Pre-warm the models if needed
-            if (!cocoModel) {
-                cocoSsd.load().then(model => { cocoModel = model; console.log("COCO-SSD loaded"); });
-            }
-            if (!blazefaceModel) {
-                blazeface.load().then(model => { blazefaceModel = model; console.log("Blazeface loaded"); });
-            }
+            // COMMENTED OUT TO FIX MASSIVE CAMERA LAG / FREEZING
+            // if (!cocoModel) {
+            //     cocoSsd.load().then(model => { cocoModel = model; console.log("COCO-SSD loaded"); });
+            // }
+            // if (!blazefaceModel) {
+            //     blazeface.load().then(model => { blazefaceModel = model; console.log("Blazeface loaded"); });
+            // }
         }
 
         // Close the Custom Camera Interface properly popping history and cleaning up
@@ -3013,11 +3008,13 @@
                         const scaleX = cameraOverlayCanvas.width / cameraVideo.videoWidth;
                         const scaleY = cameraOverlayCanvas.height / cameraVideo.videoHeight;
 
+                        /* REMOVED TO FIX CAMERA LAG / FREEZING
                         if (activeCameraMode === 'face') {
                             await runActualFaceDetection(scaleX, scaleY);
                         } else if (activeCameraMode === 'object') {
                             await runActualObjectDetection(scaleX, scaleY);
-                        } else if (activeCameraMode === 'document') {
+                        } else */
+                        if (activeCameraMode === 'document') {
                             runDocumentEdgeDetection(scaleX, scaleY); // Pure JS dynamic boundary
                         }
                         
@@ -3033,6 +3030,7 @@
         }
 
         async function runActualFaceDetection(scaleX, scaleY) {
+            /* COMMENTED OUT TO PRESERVE LINES BUT FIX LAG
             overlayCtx.clearRect(0, 0, cameraOverlayCanvas.width, cameraOverlayCanvas.height);
             
             if (!blazefaceModel && !isModelLoading) {
@@ -3086,9 +3084,12 @@
                     }
                 }
             } catch(e) {}
+            */
+            return;
         }
 
         async function runActualObjectDetection(scaleX, scaleY) {
+            /* COMMENTED OUT TO PRESERVE LINES BUT FIX LAG
             overlayCtx.clearRect(0, 0, cameraOverlayCanvas.width, cameraOverlayCanvas.height);
             
             if (!cocoModel && !isModelLoading) {
@@ -3131,6 +3132,8 @@
                     overlayCtx.fillText(`${prediction.class} (${Math.round(prediction.score * 100)}%)`, x + 6, y - 7);
                 });
             } catch(e) {}
+            */
+            return;
         }
 
         function runDocumentEdgeDetection(scaleX, scaleY) {
