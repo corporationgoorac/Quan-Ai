@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User Profile, Chats, and Messages
+    match /users/{userId} {
+      // Allow user to manage their own profile document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Explicitly allow all sub-collections (chats, messages, etc.)
+      match /{allSubcollections=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
+
