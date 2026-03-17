@@ -1,6 +1,9 @@
 // tts-worker.js
 import * as tts from 'https://cdn.jsdelivr.net/npm/@mintplex-labs/piper-tts-web@1.0.4/+esm';
 
+// THIS IS THE HANDSHAKE FIX: Tells the main page the AI is ready
+postMessage({ status: 'ready' });
+
 self.onmessage = async function(e) {
     const { text, voiceModel, fallbackLang, originalText } = e.data;
 
