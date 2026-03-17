@@ -2553,7 +2553,9 @@
                             speakBtn.className = 'action-icon';
                             speakBtn.innerHTML = window.SVGS.volume_up;
                             speakBtn.onclick = () => {
-                                const bubbleEl = speakBtn.closest('.bubble');
+                                // THE FIX: Get the correct bubble relative to this specific wrapper!
+                                const wrapperEl = speakBtn.closest('.message-wrapper');
+                                const bubbleEl = wrapperEl.querySelector('.bubble');
 
                                 // Check if this specific button is already the active playing one
                                 if (window.activeSpeakBtn === speakBtn) {
