@@ -121,6 +121,23 @@
         .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(100px); background: #27c93f; color: #000; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.5); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 9999; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .toast.error { background: #ff4500; color: #fff; }
+
+        /* ==========================================================================
+           6. NEW MEMORY PREVIEW & SECONDARY FULLSCREEN MODAL CSS
+           ========================================================================== */
+        #edit-memory { display: none !important; }
+        .memory-preview-box { cursor: pointer; position: relative; padding-bottom: 30px !important; transition: background 0.2s; min-height: 100px; display: block; }
+        .memory-preview-box:active { background: rgba(255,255,255,0.08); }
+        .memory-preview-text { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.95rem; color: rgba(255,255,255,0.9); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+        .memory-preview-hint { position: absolute; bottom: 8px; right: 12px; font-size: 0.75rem; color: #ff4500; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        #memory-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0d0f1a; z-index: 6000; transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column;
+        }
+        #memory-modal.open { transform: translateX(0); }
     </style>
 </head>
 <body>
@@ -214,6 +231,10 @@
             <div class="form-group">
                 <label class="form-label">Core Memory</label>
                 <textarea id="edit-memory" class="form-input" placeholder="Permanent facts about the user..."></textarea>
+                <div id="memory-preview-box" class="form-input memory-preview-box" onclick="openMemoryModal()">
+                    <div id="memory-preview-text" class="memory-preview-text"></div>
+                    <div class="memory-preview-hint">Tap to edit memory</div>
+                </div>
             </div>
 
             <div class="toggle-wrapper">
@@ -225,6 +246,20 @@
             </div>
             
             <div style="height: 50px; width: 100%;"></div> </div>
+    </div>
+
+    <div id="memory-modal" class="screen">
+        <div class="modal-header" style="width:100%;">
+            <button class="back-btn" onclick="closeMemoryModal(false)">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                Back
+            </button>
+            <div style="font-weight:600; font-size:1.05rem;">Edit Memory</div>
+            <button class="save-btn" onclick="closeMemoryModal(true)">Done</button>
+        </div>
+        <div class="modal-body" style="width:100%; height:100%; display:flex; padding:20px; flex-direction:column; justify-content:flex-start;">
+            <textarea id="edit-memory-full" class="form-input" style="flex:1; width:100%; height:100%; resize:none; font-size:1.05rem; padding:15px; margin-bottom:50px;" placeholder="Edit permanent facts here..."></textarea>
+        </div>
     </div>
 
     <div id="global-toast" class="toast">Saved!</div>
@@ -315,7 +350,7 @@
                 window.vibrate(10);
                 updatePinUI();
             }
-        };
+        }
 
         function updatePinUI() {
             dots.forEach((dot, index) => {
@@ -447,6 +482,7 @@
             editName.value = user.name || "";
             editPhoto.value = user.photoURL || "";
             editMemory.value = user.memory || "";
+            document.getElementById('memory-preview-text').innerText = user.memory || "No memory recorded yet. Tap to add.";
             editAdminToggle.checked = user.admin === true;
             editAvatarPreview.src = user.photoURL || '../images/icon.png';
 
@@ -465,13 +501,45 @@
             activeEditUserId = null;
         };
 
-        // Handle native back button on mobile
+        // Handle native back button on mobile perfectly for both Modals
         window.addEventListener('popstate', (e) => {
-            if (userModal.classList.contains('open')) {
+            const memModal = document.getElementById('memory-modal');
+            if (memModal && memModal.classList.contains('open')) {
+                memModal.classList.remove('open');
+            } else if (userModal.classList.contains('open')) {
                 userModal.classList.remove('open');
                 activeEditUserId = null;
             }
         });
+
+        // =========================================================
+        // 5. SECONDARY FULLSCREEN MEMORY MODAL LOGIC
+        // =========================================================
+
+        window.openMemoryModal = () => {
+            const fullMem = document.getElementById('edit-memory-full');
+            fullMem.value = editMemory.value;
+            document.getElementById('memory-modal').classList.add('open');
+            history.pushState({ memoryModalOpen: true }, "");
+            window.vibrate(10);
+        };
+
+        window.closeMemoryModal = (save) => {
+            if(save) {
+                const val = document.getElementById('edit-memory-full').value;
+                editMemory.value = val;
+                document.getElementById('memory-preview-text').innerText = val || "No memory recorded yet. Tap to add.";
+            }
+            if (history.state && history.state.memoryModalOpen) {
+                history.back(); // This triggers the popstate listener which perfectly closes it
+            } else {
+                document.getElementById('memory-modal').classList.remove('open');
+            }
+        };
+
+        // =========================================================
+        // 6. SAVE LOGIC
+        // =========================================================
 
         // Save User Data to Firestore
         window.saveUserData = async () => {
