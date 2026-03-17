@@ -1083,7 +1083,8 @@
            ----------------------------------------------------------------------------------------- */
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        // ADDED: Imported 'limit' exactly as requested for smooth pagination
+        import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         // DOM Elements
         const chatInput = document.getElementById('chat-input');
@@ -1132,6 +1133,12 @@
         let selectedImageBase64 = null;
         let selectedChatIdForModal = null; 
         let cachedChatExportText = ""; 
+        
+        // NEW ADDITIONS: Sidebar Pagination States
+        let chatHistoryLimit = 15;
+        let sidebarUnsubscribe = null;
+        let hasMoreChats = true;
+        let isLoadingChats = false;
 
         // Smart typing logic states
         window.isThinking = false;
@@ -2178,11 +2185,20 @@
             });
         }
 
+        // NEW ADDITION: The perfectly rewritten loadSidebarHistory with limit integration
         function loadSidebarHistory() {
-            const chatsRef = collection(db, `users/${currentUser.uid}/chats`);
-            const q = query(chatsRef, orderBy("updatedAt", "desc")); 
+            if (sidebarUnsubscribe) sidebarUnsubscribe(); // Unsubscribe to prevent memory leaks
+            isLoadingChats = true;
 
-            onSnapshot(q, (snapshot) => {
+            const chatsRef = collection(db, `users/${currentUser.uid}/chats`);
+            // ADDED: The secure limit(chatHistoryLimit) parameter
+            const q = query(chatsRef, orderBy("updatedAt", "desc"), limit(chatHistoryLimit)); 
+
+            sidebarUnsubscribe = onSnapshot(q, (snapshot) => {
+                isLoadingChats = false;
+                // Determine if we've hit the end of the history
+                hasMoreChats = snapshot.docs.length >= chatHistoryLimit;
+                
                 const historyList = document.getElementById('chat-history-list');
                 historyList.innerHTML = ''; 
                 
@@ -2298,6 +2314,19 @@
                 });
             });
         }
+
+        // NEW ADDITION: Infinite Scroll Trigger for the Sidebar
+        const sidebarHistoryList = document.getElementById('chat-history-list');
+        sidebarHistoryList.addEventListener('scroll', function() {
+            // When user scrolls within 20px of the bottom of the list
+            if (!isLoadingChats && hasMoreChats) {
+                if (this.scrollTop + this.clientHeight >= this.scrollHeight - 20) {
+                    chatHistoryLimit += 15; // Bump limit by 15
+                    loadSidebarHistory(); // Re-trigger smooth load
+                }
+            }
+        }, { passive: true }); // passive ensures buttery smooth native scrolling
+
     </script>
     
     <script>
