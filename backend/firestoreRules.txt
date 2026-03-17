@@ -2,21 +2,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Global Deny
+    // Helper function: Checks if the user's profile document has 'admin: true'
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+
+    // Global Deny (Modified: Now allows Admins to read/write everything globally)
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if false || isAdmin();
     }
 
     // User Profile, Chats, and Messages
     match /users/{userId} {
-      // Allow user to manage their own profile document
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow user to manage their own profile document (Admins also allowed)
+      allow read, write: if (request.auth != null && request.auth.uid == userId) || isAdmin();
       
-      // Explicitly allow all sub-collections (chats, messages, etc.)
+      // Explicitly allow all sub-collections (chats, messages, etc.) (Admins also allowed)
       match /{allSubcollections=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if (request.auth != null && request.auth.uid == userId) || isAdmin();
       }
     }
   }
 }
-
