@@ -2426,7 +2426,7 @@
                     }
                 });
                 
-                // NEW: Ensure scroll lock is disabled if generation is stopped manually
+                // NEW FIX: Ensure scroll lock is disabled if generation is stopped manually
                 document.querySelectorAll('.bubble.generating').forEach(b => b.classList.remove('generating'));
                 
                 if (window.activeActionsEl) window.activeActionsEl.classList.remove('hidden');
@@ -2616,6 +2616,7 @@
                                     }
                                     speakBtn.innerHTML = window.SVGS.volume_up;
                                     window.activeSpeakBtn = null;
+                                    window.speechSynthesis.cancel(); // ENSURE STOP
                                     return; // Exit out, don't play again
                                 }
 
@@ -2635,15 +2636,21 @@
 
                                 const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
                                 const isTelugu = /[\u0C00-\u0C7F]/.test(data.text);
+                                const isHindi = /[\u0900-\u097F]/.test(data.text);
+                                const isSpanish = /[áéíóúüñ¿¡]/i.test(data.text);
+                                const isFrench = /[éàèùâêîôûç]/i.test(data.text);
 
                                 let fallbackLang = 'en-US';
-                                let googleLang = 'en';
+                                let googleLang = 'en'; // Kept var to preserve lines structure
                                 if (isTamil) { fallbackLang = 'ta-IN'; googleLang = 'ta'; } 
                                 else if (isTelugu) { fallbackLang = 'te-IN'; googleLang = 'te'; }
+                                else if (isHindi) { fallbackLang = 'hi-IN'; googleLang = 'hi'; }
+                                else if (isSpanish) { fallbackLang = 'es-ES'; googleLang = 'es'; }
+                                else if (isFrench) { fallbackLang = 'fr-FR'; googleLang = 'fr'; }
 
                                 window.vibrateLight();
 
-                                // ADVANCED GOOGLE TTS CHUNKER (Bypasses length limits)
+                                // ADVANCED NATIVE TTS CHUNKER (Replaces Google TTS completely, bypasses length limits)
                                 const cleanText = data.text.replace(/[*#`~>]/g, '').trim();
                                 
                                 let sentences = cleanText.match(/[^.!?\n]+[.!?\n]+/g) || [cleanText];
@@ -2691,24 +2698,28 @@
                                         return;
                                     }
 
-                                    const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${googleLang}&q=${encodeURIComponent(chunkText)}`;
-                                    const audio = new Audio(url);
-                                    window.currentAudioElement = audio;
+                                    // Completely native TTS handling without external API calls
+                                    window.speechSynthesis.cancel(); // Clear prior
+                                    const utterance = new SpeechSynthesisUtterance(chunkText);
+                                    utterance.lang = fallbackLang;
+                                    utterance.rate = 1.0;
+                                    utterance.pitch = 1.0;
                                     
-                                    audio.play().catch(e => {
-                                        console.warn("Google TTS chunk failed, falling back to native.", e);
-                                        window.playNativeFallback(cleanText, fallbackLang, speakBtn, bubbleEl);
-                                    });
+                                    window.isNativePlaying = true; // Set global flag
 
-                                    audio.onended = () => {
+                                    utterance.onend = () => {
                                         currentChunkIndex++;
                                         playNextChunk(); 
                                     };
 
-                                    audio.onerror = () => {
-                                        console.warn("Google TTS error, falling back.");
-                                        window.playNativeFallback(cleanText, fallbackLang, speakBtn, bubbleEl);
+                                    utterance.onerror = (e) => {
+                                        if (e.error !== 'canceled') {
+                                            currentChunkIndex++;
+                                            playNextChunk();
+                                        }
                                     };
+                                    
+                                    window.speechSynthesis.speak(utterance);
                                 };
 
                                 playNextChunk();
