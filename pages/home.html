@@ -421,9 +421,9 @@
 
         /* NEW AUDIO GLOW CSS EFFECT */
         .playing-glow {
-            box-shadow: 0 0 15px rgba(138, 43, 226, 0.8), inset 0 0 10px rgba(138, 43, 226, 0.3) !important;
-            border: 1px solid rgba(138, 43, 226, 0.5) !important;
-            transition: all 0.3s ease-in-out;
+            box-shadow: 0 0 30px rgba(138, 43, 226, 0.3), 0 0 15px rgba(255, 69, 0, 0.15) !important;
+            border: 1px solid transparent !important;
+            transition: all 0.5s ease-in-out;
         }
         
         /* FIX: Prevents text selection from intercepting smooth scroll during generation */
@@ -2608,7 +2608,7 @@
                                 // Use Google Translate TTS (No API Key) for short texts, else Native Fallback
                                 try {
                                     if (data.text.length <= 200) {
-                                        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${googleLang}&q=${encodeURIComponent(data.text)}`;
+                                        const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${googleLang}&q=${encodeURIComponent(data.text)}`;
                                         const audio = new Audio(url);
                                         window.currentAudioElement = audio;
                                         
