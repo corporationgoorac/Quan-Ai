@@ -1,11 +1,9 @@
-const CACHE_NAME = 'quan-ai-dynamic-v35'; // Bumped version to force the new code to activate
+const CACHE_NAME = 'quan-ai-dynamic-v1'; // Bumped once to clear the old stubborn cache
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/pages/home.html',
   '/pages/login.html',
-  '/pages/settings.html',
-  '/pages/setup.html',
   '/config.js',
   '/images/icon.png',
   '/manifest.json'
@@ -34,52 +32,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim(); // Take control of all open pages right away
 });
 
-// 3. Fetch Event: Completely Detached Background Update
+// 3. Fetch Event: NETWORK FIRST, fallback to Cache
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // EXCEPTION 1: Ignore Firebase and Firestore API calls entirely
-  if (url.hostname.includes('firestore.googleapis.com') || 
-      url.hostname.includes('firebaseio.com') || 
-      url.hostname.includes('identitytoolkit')) {
-      return; 
-  }
-
-  // EXCEPTION 2: Only intercept standard GET requests
+  // Only intercept standard GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      
-      if (cachedResponse) {
-        // THE MAGIC TRICK: event.waitUntil() completely hides this fetch from the browser's UI.
-        // The native loading bar will NOT spin for this.
-        event.waitUntil(
-          fetch(event.request).then((networkResponse) => {
-            if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, networkResponse.clone()); // Update cache silently
-              });
-            }
-          }).catch((error) => {
-            console.log('[Quan AI] Offline background sync failed, keeping old cache.');
-          })
-        );
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Network request succeeded! The user is online.
+        // Clone the fresh response and update the cache in the background so it's always up-to-date.
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
         
-        // Return the cached file INSTANTLY. The browser stops the loading bar right here.
-        return cachedResponse;
-      }
-
-      // IF NOT IN CACHE (e.g., very first launch): We have to fetch it normally.
-      return fetch(event.request).then((networkResponse) => {
-        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
+        // Return the fresh network response to the screen
         return networkResponse;
-      });
-    })
+      })
+      .catch(() => {
+        // Network request failed (the user is offline). 
+        // Fall back to the latest saved version in the cache.
+        return caches.match(event.request);
+      })
   );
 });
