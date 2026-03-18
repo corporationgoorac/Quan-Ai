@@ -2,67 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="theme-color" content="#0a0c14">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <title>Quan AI | Goorac Corporation</title>
+    
     <style>
-        /* 1. The "Inky" Background Logic */
-        body, html {
+        /* 1. Core Reset & Exact Home Page Theme Match */
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
-            /* Radial gradient creates depth and a 'spotlight' behind the logo */
-            background: radial-gradient(circle at center, #0a0c14 0%, #04050a 100%);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* FIX: Locked viewport identical to home.html to guarantee stability */
+        html, body {
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            background-color: #0a0c14 !important; /* Exact match, solid color, no gradient */
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            overflow: hidden !important;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-family: 'Inter', -apple-system, system-ui, sans-serif;
-            overflow: hidden;
-            color: #ffffff;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            overscroll-behavior: none !important;
         }
 
-        /* 2. Logo Wrapper with Soft Glow */
+        /* 2. Logo Wrapper with Smooth Reveal */
         .logo-wrapper {
             position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Cubic-bezier makes the animation feel 'premium' and smooth */
-            animation: logo-reveal 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: logo-reveal 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .logo-wrapper img {
             width: 160px; /* Flagship size */
             height: auto;
-            /* A soft purple/magenta glow to match the left side of your logo */
-            filter: drop-shadow(0 0 50px rgba(138, 43, 226, 0.3));
+            /* Matches the exact purple glow from your home page UI */
+            filter: drop-shadow(0 0 40px rgba(138, 43, 226, 0.4));
             z-index: 2;
         }
 
         /* 3. The Powered By Branding */
         .brand-footer {
             position: absolute;
-            bottom: 50px;
+            bottom: calc(env(safe-area-inset-bottom) + 40px);
             text-align: center;
             opacity: 0;
-            animation: footer-fade 1.5s ease 1s forwards;
+            animation: footer-fade 1.2s ease 0.8s forwards;
         }
 
         .brand-text {
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 6px; /* High spacing = Luxury/Pro aesthetic */
-            color: rgba(255, 255, 255, 0.25);
-            font-weight: 300;
+            letter-spacing: 6px;
+            color: rgba(255, 255, 255, 0.3);
+            font-weight: 500;
         }
 
         /* 4. Elegant Animations */
         @keyframes logo-reveal {
             0% { 
                 opacity: 0; 
-                transform: scale(0.8) translateY(30px); 
-                filter: blur(20px);
+                transform: scale(0.85) translateY(20px); 
+                filter: blur(10px);
             }
             100% { 
                 opacity: 1; 
@@ -79,15 +95,21 @@
 <body>
 
     <div class="logo-wrapper">
-        <img src="images/icon.png" alt="Quan AI">
+        <img src="images/icon.png" alt="Quan AI" id="splash-logo">
     </div>
 
     <div class="brand-footer">
         <span class="brand-text">Powered by Goorac</span>
     </div>
 
+    <script>
+        const cachedLogo = localStorage.getItem('quan_logo_base64');
+        if(cachedLogo) {
+            document.getElementById('splash-logo').src = cachedLogo;
+        }
+    </script>
+
     <script type="module">
-        // Import your config - NO hardcoded keys here!
         import { auth } from './config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
