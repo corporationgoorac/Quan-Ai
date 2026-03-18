@@ -419,11 +419,14 @@
             -webkit-user-select: text !important;
         }
 
-        /* NEW AUDIO GLOW CSS EFFECT */
+        /* PERFECTED AUDIO GLOW CSS EFFECT - Bottom Aura Only */
         .playing-glow {
-            box-shadow: 0 0 30px rgba(138, 43, 226, 0.3), 0 0 15px rgba(255, 69, 0, 0.15) !important;
-            border: 1px solid transparent !important;
-            transition: all 0.5s ease-in-out;
+            box-shadow: 0 15px 25px -10px rgba(138, 43, 226, 0.8), 0 10px 15px -5px rgba(255, 69, 0, 0.5) !important;
+            border-bottom: 2px solid #8a2be2 !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            transition: all 0.3s ease-in-out;
         }
         
         /* FIX: Prevents text selection from intercepting smooth scroll during generation */
@@ -608,7 +611,8 @@
         .bubble tr:hover { background-color: rgba(255, 255, 255, 0.05); }
         .bubble a { color: #82aaff; text-decoration: none; }
         .bubble a:hover { text-decoration: underline; }
-        .bubble img { max-width: 100%; border-radius: 8px; margin: 10px 0; }
+        .bubble img { max-width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer; transition: transform 0.2s; }
+        .bubble img:active { transform: scale(0.98); }
         .bubble hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; }
         
         /* --- NEW CSS FOR INLINE CODE --- */
@@ -910,6 +914,14 @@
             background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 50%; width: 40px; height: 40px;
             display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;
         }
+        #download-fullscreen-btn {
+            position: absolute; bottom: calc(env(safe-area-inset-bottom) + 30px); left: 50%; transform: translateX(-50%);
+            background: linear-gradient(90deg, #8a2be2, #ff4500); border: none; color: white; border-radius: 30px; 
+            padding: 12px 24px; font-size: 1rem; font-weight: 600; cursor: pointer; z-index: 10; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+        }
+        #download-fullscreen-btn:active { transform: translateX(-50%) scale(0.95); }
 
         /* ==========================================================================
            12. IN-APP CUSTOM CAMERA UI STYLES (NEW)
@@ -1261,6 +1273,9 @@
     <div id="fullscreen-image-modal" class="no-select">
         <button id="close-fullscreen-btn"><script>document.write(window.SVGS.close);</script></button>
         <img id="fullscreen-img" src="" alt="Fullscreen">
+        <button id="download-fullscreen-btn">
+            <script>document.write(window.SVGS.file_download);</script> Save Image
+        </button>
     </div>
 
     <div class="input-area-container">
@@ -1441,6 +1456,7 @@
         const fullscreenModal = document.getElementById('fullscreen-image-modal');
         const fullscreenImg = document.getElementById('fullscreen-img');
         const closeFullscreenBtn = document.getElementById('close-fullscreen-btn');
+        const downloadFullscreenBtn = document.getElementById('download-fullscreen-btn');
 
         const clearTextBtn = document.getElementById('clear-text-btn');
         const charCounter = document.getElementById('char-counter');
@@ -1466,6 +1482,15 @@
         window.isInitialChatLoad = true; 
         window.activeActionsEl = null; 
         window.justSentPrompt = false; 
+
+        // ==========================================================================
+        // GLOBAL EVENT LISTENER FOR DYNAMIC IMAGE CLICK HANDLING
+        // ==========================================================================
+        messagesContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'IMG' && (e.target.classList.contains('message-image') || e.target.closest('.bubble'))) {
+                window.openFullscreenImage(e.target.src);
+            }
+        });
 
         // ==========================================================================
         // GOOGLE CLOUD TTS HACK & NATIVE FALLBACK GLOBALS (NO WORKER, NO API KEY)
@@ -1566,6 +1591,36 @@
             if (history.state && history.state.imageModalOpen) history.back();
         };
 
+        // NEW: DOWNLOAD FULLSCREEN IMAGE FEATURE
+        downloadFullscreenBtn.onclick = async () => {
+            const src = fullscreenImg.src;
+            if (!src) return;
+            try {
+                window.vibrateLight();
+                window.showToast('Downloading image...', 'update');
+                const response = await fetch(src);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Quan_AI_Image_${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                window.showToast('Image saved successfully!', 'success');
+            } catch (e) {
+                // Fallback for cross-origin or data URLs
+                const a = document.createElement('a');
+                a.href = src;
+                a.download = `Quan_AI_Image_${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.showToast('Image saved successfully!', 'success');
+            }
+        };
+
         const updateGreeting = (name = "") => {
             if(!navigator.onLine) {
                 welcomeGreeting.innerHTML = '<span style="color:#ff4500;">You are currently offline</span>';
@@ -1651,7 +1706,7 @@
                     if (typeof DOMPurify !== 'undefined') {
                         parsedHtml = DOMPurify.sanitize(parsedHtml, {
                             ADD_TAGS: ['math', 'mrow', 'mi', 'mn', 'mo', 'ms', 'mspace', 'mtext', 'menclose', 'merror', 'mpadded', 'mphantom', 'mroot', 'mrow', 'msqrt', 'mstyle', 'mmultiscripts', 'mover', 'mprescripts', 'msub', 'msubsup', 'msup', 'munder', 'munderover', 'none', 'maligngroup', 'malignmark', 'mtable', 'mtd', 'mtr', 'mlongdiv', 'mscarries', 'mscarry', 'msgroup', 'msline', 'msrow', 'semantics', 'annotation', 'annotation-xml'],
-                            ADD_ATTR: ['target', 'class', 'style', 'aria-hidden']
+                            ADD_ATTR: ['target', 'class', 'style', 'aria-hidden', 'src', 'alt']
                         });
                     }
                     
@@ -2543,28 +2598,6 @@
                                 // EXACT DOM FIX FOR BUBBLE SELECTION
                                 const bubbleEl = speakBtn.closest('.message-wrapper').querySelector('.bubble');
 
-                                // Check if this specific button is already the active playing one
-                                if (window.activeSpeakBtn === speakBtn) {
-                                    // Stop audio
-                                    if (window.currentAudioElement) { 
-                                        try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; } catch(e){} 
-                                        window.currentAudioElement = null;
-                                    }
-                                    if (window.isNativePlaying) {
-                                        window.speechSynthesis.cancel();
-                                        window.isNativePlaying = false;
-                                    }
-                                    if (window.activeBubble) {
-                                        window.activeBubble.classList.remove('playing-glow');
-                                        window.activeBubble = null;
-                                    }
-                                    
-                                    // Revert icon and clear state
-                                    speakBtn.innerHTML = window.SVGS.volume_up;
-                                    window.activeSpeakBtn = null;
-                                    return; // Exit out, don't play again
-                                }
-
                                 // Stop any overlap from OTHER buttons
                                 if (window.currentAudioElement) { 
                                     try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; } catch(e){} 
@@ -2573,6 +2606,17 @@
                                 if (window.isNativePlaying) {
                                     window.speechSynthesis.cancel();
                                     window.isNativePlaying = false;
+                                }
+
+                                // Check if this specific button is already the active playing one
+                                if (window.activeSpeakBtn === speakBtn) {
+                                    if (window.activeBubble) {
+                                        window.activeBubble.classList.remove('playing-glow');
+                                        window.activeBubble = null;
+                                    }
+                                    speakBtn.innerHTML = window.SVGS.volume_up;
+                                    window.activeSpeakBtn = null;
+                                    return; // Exit out, don't play again
                                 }
 
                                 // Reset previous active button's icon and bubble glow if one exists
@@ -2589,52 +2633,85 @@
                                 window.activeBubble = bubbleEl;
                                 if(bubbleEl) bubbleEl.classList.add('playing-glow');
 
-                                // Lightning-fast heuristic language detection (Tamil & Telugu Unicode Ranges)
                                 const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
                                 const isTelugu = /[\u0C00-\u0C7F]/.test(data.text);
 
                                 let fallbackLang = 'en-US';
                                 let googleLang = 'en';
-                                if (isTamil) {
-                                    fallbackLang = 'ta-IN';
-                                    googleLang = 'ta';
-                                } else if (isTelugu) {
-                                    fallbackLang = 'te-IN';
-                                    googleLang = 'te';
-                                }
+                                if (isTamil) { fallbackLang = 'ta-IN'; googleLang = 'ta'; } 
+                                else if (isTelugu) { fallbackLang = 'te-IN'; googleLang = 'te'; }
 
                                 window.vibrateLight();
 
-                                // Use Google Translate TTS (No API Key) for short texts, else Native Fallback
-                                try {
-                                    if (data.text.length <= 200) {
-                                        const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${googleLang}&q=${encodeURIComponent(data.text)}`;
-                                        const audio = new Audio(url);
-                                        window.currentAudioElement = audio;
-                                        
-                                        audio.play().catch(e => {
-                                            window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
-                                        });
+                                // ADVANCED GOOGLE TTS CHUNKER (Bypasses length limits)
+                                const cleanText = data.text.replace(/[*#`~>]/g, '').trim();
+                                
+                                let sentences = cleanText.match(/[^.!?\n]+[.!?\n]+/g) || [cleanText];
+                                let chunks = [];
+                                let tempChunk = "";
 
-                                        audio.onended = () => {
-                                            if (window.activeSpeakBtn === speakBtn) {
-                                                window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
-                                                window.activeSpeakBtn = null;
-                                            }
-                                            if (window.activeBubble === bubbleEl && bubbleEl) {
-                                                bubbleEl.classList.remove('playing-glow');
-                                                window.activeBubble = null;
-                                            }
-                                        };
-                                        audio.onerror = () => {
-                                            window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
-                                        };
+                                sentences.forEach(sentence => {
+                                    if ((tempChunk + sentence).length > 180) {
+                                        if (tempChunk) chunks.push(tempChunk.trim());
+                                        if (sentence.length > 180) {
+                                            let subChunks = sentence.match(/.{1,150}(\s|$)/g) || [sentence];
+                                            chunks.push(...subChunks.map(s => s.trim()));
+                                            tempChunk = "";
+                                        } else {
+                                            tempChunk = sentence;
+                                        }
                                     } else {
-                                        window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
+                                        tempChunk += " " + sentence;
                                     }
-                                } catch(e) {
-                                    window.playNativeFallback(data.text, fallbackLang, speakBtn, bubbleEl);
-                                }
+                                });
+                                if (tempChunk) chunks.push(tempChunk.trim());
+                                
+                                let currentChunkIndex = 0;
+                                
+                                const playNextChunk = () => {
+                                    if (window.activeSpeakBtn !== speakBtn) return; // Stopped
+                                    
+                                    if (currentChunkIndex >= chunks.length) {
+                                        // Finished all chunks
+                                        if (window.activeSpeakBtn === speakBtn) {
+                                            window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                                            window.activeSpeakBtn = null;
+                                        }
+                                        if (window.activeBubble === bubbleEl && bubbleEl) {
+                                            bubbleEl.classList.remove('playing-glow');
+                                            window.activeBubble = null;
+                                        }
+                                        return;
+                                    }
+
+                                    const chunkText = chunks[currentChunkIndex];
+                                    if (!chunkText) {
+                                        currentChunkIndex++;
+                                        playNextChunk();
+                                        return;
+                                    }
+
+                                    const url = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=${googleLang}&q=${encodeURIComponent(chunkText)}`;
+                                    const audio = new Audio(url);
+                                    window.currentAudioElement = audio;
+                                    
+                                    audio.play().catch(e => {
+                                        console.warn("Google TTS chunk failed, falling back to native.", e);
+                                        window.playNativeFallback(cleanText, fallbackLang, speakBtn, bubbleEl);
+                                    });
+
+                                    audio.onended = () => {
+                                        currentChunkIndex++;
+                                        playNextChunk(); 
+                                    };
+
+                                    audio.onerror = () => {
+                                        console.warn("Google TTS error, falling back.");
+                                        window.playNativeFallback(cleanText, fallbackLang, speakBtn, bubbleEl);
+                                    };
+                                };
+
+                                playNextChunk();
                             };
 
                             actionsContainer.appendChild(copyBtn);
