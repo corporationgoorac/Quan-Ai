@@ -15,7 +15,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://js.puter.com/v2/"></script>
     
     <link rel="manifest" href="../manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
@@ -419,14 +418,14 @@
             user-select: text !important;
             -webkit-user-select: text !important;
         }
-        
+
         /* NEW AUDIO GLOW CSS EFFECT */
         .playing-glow {
             box-shadow: 0 0 15px rgba(138, 43, 226, 0.8), inset 0 0 10px rgba(138, 43, 226, 0.3) !important;
             border: 1px solid rgba(138, 43, 226, 0.5) !important;
             transition: all 0.3s ease-in-out;
         }
-
+        
         /* FIX: Prevents text selection from intercepting smooth scroll during generation */
         .bubble.generating {
             user-select: none !important;
@@ -1476,38 +1475,26 @@
         window.activeSpeakBtn = null; // Track the currently playing button
         window.activeBubble = null; // Track bubble to remove glow
 
-        // Old worker variables kept to respect "don't remove lines" rule
-        window.currentAudioSource = null;
-        window.piperWorker = null;
-        window.piperIsReady = false;
-
         window.playNativeFallback = function(text, lang, btn, bubble) {
             window.speechSynthesis.cancel();
             window.isNativePlaying = true;
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = lang;
-            utterance.onend = () => {
+            
+            const resetUI = () => {
                 window.isNativePlaying = false;
-                if (window.activeSpeakBtn === btn) {
-                    window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
+                if (window.activeSpeakBtn === btn && btn) {
+                    btn.innerHTML = window.SVGS.volume_up;
                     window.activeSpeakBtn = null;
                 }
-                if (window.activeBubble === bubble) {
-                    window.activeBubble.classList.remove('playing-glow');
+                if (window.activeBubble === bubble && bubble) {
+                    bubble.classList.remove('playing-glow');
                     window.activeBubble = null;
                 }
             };
-            utterance.onerror = () => {
-                window.isNativePlaying = false;
-                if (window.activeSpeakBtn === btn) {
-                    window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
-                    window.activeSpeakBtn = null;
-                }
-                if (window.activeBubble === bubble) {
-                    window.activeBubble.classList.remove('playing-glow');
-                    window.activeBubble = null;
-                }
-            };
+            
+            utterance.onend = resetUI;
+            utterance.onerror = resetUI;
             window.speechSynthesis.speak(utterance);
         };
 
@@ -2553,15 +2540,15 @@
                             speakBtn.className = 'action-icon';
                             speakBtn.innerHTML = window.SVGS.volume_up;
                             speakBtn.onclick = () => {
-                                // THE FIX: Get the correct bubble relative to this specific wrapper!
-                                const wrapperEl = speakBtn.closest('.message-wrapper');
-                                const bubbleEl = wrapperEl.querySelector('.bubble');
+                                // EXACT DOM FIX FOR BUBBLE SELECTION
+                                const bubbleEl = speakBtn.closest('.message-wrapper').querySelector('.bubble');
 
                                 // Check if this specific button is already the active playing one
                                 if (window.activeSpeakBtn === speakBtn) {
                                     // Stop audio
                                     if (window.currentAudioElement) { 
-                                        try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; window.currentAudioElement = null; } catch(e){} 
+                                        try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; } catch(e){} 
+                                        window.currentAudioElement = null;
                                     }
                                     if (window.isNativePlaying) {
                                         window.speechSynthesis.cancel();
@@ -2580,7 +2567,8 @@
 
                                 // Stop any overlap from OTHER buttons
                                 if (window.currentAudioElement) { 
-                                    try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; window.currentAudioElement = null; } catch(e){} 
+                                    try { window.currentAudioElement.pause(); window.currentAudioElement.src = ''; } catch(e){} 
+                                    window.currentAudioElement = null;
                                 }
                                 if (window.isNativePlaying) {
                                     window.speechSynthesis.cancel();
@@ -2599,7 +2587,7 @@
                                 window.activeSpeakBtn = speakBtn;
                                 speakBtn.innerHTML = window.SVGS.stop_circle;
                                 window.activeBubble = bubbleEl;
-                                bubbleEl.classList.add('playing-glow');
+                                if(bubbleEl) bubbleEl.classList.add('playing-glow');
 
                                 // Lightning-fast heuristic language detection (Tamil & Telugu Unicode Ranges)
                                 const isTamil = /[\u0B80-\u0BFF]/.test(data.text);
@@ -2633,8 +2621,8 @@
                                                 window.activeSpeakBtn.innerHTML = window.SVGS.volume_up;
                                                 window.activeSpeakBtn = null;
                                             }
-                                            if (window.activeBubble === bubbleEl) {
-                                                window.activeBubble.classList.remove('playing-glow');
+                                            if (window.activeBubble === bubbleEl && bubbleEl) {
+                                                bubbleEl.classList.remove('playing-glow');
                                                 window.activeBubble = null;
                                             }
                                         };
