@@ -491,6 +491,25 @@
             transform: scale(0.98);
         }
 
+        /* Added for multiple images */
+        .message-image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .message-image-grid .message-image {
+            width: calc(50% - 3px); /* 2 per row */
+            margin-bottom: 0;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+        }
+        .message-image-grid .message-image:only-child {
+            width: 100%;
+            aspect-ratio: auto;
+        }
+
         .message-actions {
             display: flex;
             gap: 8px;
@@ -764,11 +783,27 @@
         }
         .mic-btn:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
 
+        /* REDESIGNED FOR MULTIPLE IMAGES */
         #image-preview-container {
             display: none; position: absolute; bottom: 100%; left: 20px; margin-bottom: 15px; 
-            border-radius: 12px; border: 2px solid #8a2be2; width: 80px; height: 80px; 
-            overflow: hidden; background: #1a1a1a; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 12px; padding: 8px; gap: 8px; width: auto; height: auto;
+            max-width: calc(100% - 40px); overflow-x: auto; flex-direction: row;
+            background: rgba(26, 28, 36, 0.95); z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px); border: 1px solid rgba(138,43,226,0.3);
         }
+        
+        .preview-thumb-wrapper {
+            position: relative; width: 64px; height: 64px; flex-shrink: 0;
+            border-radius: 8px; border: 2px solid #8a2be2; overflow: hidden;
+            background: #000;
+        }
+        .preview-thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-remove-btn {
+            position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7); color: white; border: none; 
+            border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            backdrop-filter: blur(5px); transition: background 0.2s;
+        }
+        .preview-remove-btn:active { background: #ff4500; }
 
         @keyframes float {
             0% { transform: translateY(0px); }
@@ -1281,13 +1316,9 @@
     <div class="input-area-container">
         
         <div id="image-preview-container">
-            <img id="image-preview" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
-            <button id="remove-image-btn" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                <script>document.write(window.SVGS.close);</script>
-            </button>
-        </div>
+            </div>
 
-        <input type="file" id="image-upload" accept="image/*" style="display: none;">
+        <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
         <input type="file" id="camera-upload" accept="image/*" capture="environment" style="display: none;">
         
         <div class="input-area" id="input-capsule">
@@ -1409,7 +1440,9 @@
            it populates instantly across all authenticated instances linked to the same UID.
            [END OF EXPERIMENTAL COMMENT PADDING BLOCK]
            ----------------------------------------------------------------------------------------- */
-        import { auth, db } from '../config.js';
+        
+        // **UPDATED**: Importing IMGBB_API_KEY from config.js
+        import { auth, db, IMGBB_API_KEY } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, getDoc, setDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
@@ -1434,8 +1467,6 @@
 
         const imageUpload = document.getElementById('image-upload');
         const imagePreviewContainer = document.getElementById('image-preview-container');
-        const imagePreview = document.getElementById('image-preview');
-        const removeImageBtn = document.getElementById('remove-image-btn');
 
         const bottomModalOverlay = document.getElementById('bottom-modal-overlay');
         const chatOptionsModal = document.getElementById('chat-options-modal');
@@ -1464,7 +1495,12 @@
         let currentUser = null;
         let currentChatId = null; 
         let messagesUnsubscribe = null; 
-        let selectedImageBase64 = null;
+        
+        // **NEW**: Replacing singular base64 logic with an array tracking state for up to 4 images
+        let selectedImages = [];
+        const MAX_IMAGES = 4;
+        let selectedImageBase64 = null; // Preserving dead variable to prevent breaking dependent legacy loops if any
+
         let selectedChatIdForModal = null; 
         let cachedChatExportText = ""; 
         
@@ -1541,6 +1577,8 @@
         window.vibrateLight = () => { if(navigator.vibrate) navigator.vibrate(2); };
         window.vibrateMedium = () => { if(navigator.vibrate) navigator.vibrate(20); };
         window.vibrateSuccess = () => { if(navigator.vibrate) navigator.vibrate([15, 20, 15]); };
+        // **NEW**: Strong vibration function as requested
+        window.vibrateStrong = () => { if(navigator.vibrate) navigator.vibrate([100, 50, 100]); };
 
         window.showToast = (msg, type = 'default') => {
             const toast = document.getElementById('global-toast');
@@ -1928,7 +1966,9 @@
             } else {
                 sendIcon.innerHTML = window.SVGS.send;
                 sendBtn.classList.remove('stop-mode');
-                if (val.trim().length > 0 || selectedImageBase64) {
+                
+                // **UPDATED**: Checks selectedImages array instead of single base64
+                if (val.trim().length > 0 || selectedImages.length > 0) {
                     inputCapsule.classList.add('focused');
                     sendBtn.classList.add('active');
                     sendBtn.style.display = 'flex';
@@ -1939,7 +1979,13 @@
                     sendBtn.classList.remove('active');
                     sendBtn.style.display = 'none';
                     micBtnWrapper.style.display = 'flex';
-                    attachBtn.style.display = 'flex';
+                    
+                    // Hide add button if max reached
+                    if (selectedImages.length >= MAX_IMAGES) {
+                        attachBtn.style.display = 'none';
+                    } else {
+                        attachBtn.style.display = 'flex';
+                    }
                 }
             }
         }
@@ -2008,11 +2054,81 @@
         }, 50);
 
         /* ==========================================================================
-           IMAGE COMPRESSION & DRAG DROP LOGIC
+           IMAGE COMPRESSION & MULTI-FILE DRAG DROP LOGIC 
            ========================================================================== */
-        // Modified: attachBtn now handled via attachment modal logic below
+           
+        // **NEW**: Smart Client-Side Sub-1MB Compressor
+        async function compressImageToBlob(fileOrCanvas) {
+            let img = new Image();
+            if (fileOrCanvas instanceof File || fileOrCanvas instanceof Blob) {
+                img.src = URL.createObjectURL(fileOrCanvas);
+                await new Promise(r => img.onload = r);
+            } else {
+                img = fileOrCanvas; // Input is a canvas or ready image
+            }
+
+            let canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
+            
+            // Limit Initial Size to 1080p for safe memory ceiling
+            let maxW = 1920, maxH = 1080;
+            let ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+            canvas.width = img.width * ratio;
+            canvas.height = img.height * ratio;
+            
+            // Ensure no transparency background issues
+            ctx.fillStyle = "#FFFFFF"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            let quality = 0.9;
+            let blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+
+            // Reduce quality iteratively until the file size is below 1MB (1048576 bytes)
+            while (blob.size > 1048576 && quality > 0.1) {
+                quality -= 0.1;
+                blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+            }
+            return blob;
+        }
+
+        // **NEW**: Render multiple selected thumbnails
+        function updateImagePreviews() {
+            imagePreviewContainer.innerHTML = '';
+            if (selectedImages.length === 0) {
+                imagePreviewContainer.style.display = 'none';
+            } else {
+                imagePreviewContainer.style.display = 'flex';
+                selectedImages.forEach((item, index) => {
+                    let wrapper = document.createElement('div');
+                    wrapper.className = 'preview-thumb-wrapper';
+                    
+                    let img = document.createElement('img');
+                    img.src = item.url;
+                    
+                    let btn = document.createElement('button');
+                    btn.className = 'preview-remove-btn';
+                    btn.innerHTML = window.SVGS.close;
+                    btn.onclick = () => {
+                        window.vibrateLight();
+                        selectedImages.splice(index, 1);
+                        updateImagePreviews();
+                        updateSendBtnState();
+                    };
+                    
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(btn);
+                    imagePreviewContainer.appendChild(wrapper);
+                });
+            }
+        }
+           
         attachBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            if (selectedImages.length >= MAX_IMAGES) {
+                window.showToast(`Maximum ${MAX_IMAGES} images allowed.`, "error");
+                return;
+            }
             bottomModalOverlay.classList.add('show');
             attachmentModal.classList.add('show');
             history.pushState({ attachmentModalOpen: true }, "");
@@ -2024,7 +2140,11 @@
         chatInput.addEventListener('drop', (e) => {
             e.preventDefault();
             inputCapsule.style.borderColor = '';
-            if(e.dataTransfer.files.length > 0) handleImageSelection(e.dataTransfer.files[0]);
+            if(e.dataTransfer.files) {
+                Array.from(e.dataTransfer.files).forEach(file => {
+                    if (file.type.startsWith('image/')) handleImageSelection(file);
+                });
+            }
         });
         
         chatInput.addEventListener('paste', (e) => {
@@ -2033,67 +2153,47 @@
                 const item = items[index];
                 if (item.kind === 'file') {
                     const file = item.getAsFile();
-                    if(file) handleImageSelection(file);
+                    if(file && file.type.startsWith('image/')) handleImageSelection(file);
                 }
             }
         });
 
         imageUpload.addEventListener('change', (e) => {
-            if (e.target.files[0]) handleImageSelection(e.target.files[0]);
+            if (e.target.files) {
+                Array.from(e.target.files).forEach(file => handleImageSelection(file));
+            }
+            e.target.value = ''; // Reset input to allow re-selection
         });
 
         cameraUpload.addEventListener('change', (e) => {
             if (e.target.files[0]) handleImageSelection(e.target.files[0]);
+            e.target.value = '';
         });
 
-        function handleImageSelection(file) {
+        // **UPDATED**: Pushes compressed blob to the array
+        async function handleImageSelection(file) {
             closeAttachmentModal(); 
             
-            // Adjusted: compress the image if it's above 6MB internally 
-            // Original: if (file.size > 10 * 1024 * 1024) { window.showToast("Image too large. Max 10MB.", "error"); return; }
-            let compressQuality = 0.7; 
-            if (file.size > 6 * 1024 * 1024) { 
-                compressQuality = 0.4; 
+            if (selectedImages.length >= MAX_IMAGES) {
+                window.showToast(`Maximum ${MAX_IMAGES} images allowed.`, "error");
+                return;
             }
             
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // FIX: Heavily reduced width to avoid Firestore 1MB limit crash
-                    let scaleSize = 1; 
-                    if (img.width > MAX_WIDTH) { 
-                        scaleSize = MAX_WIDTH / img.width; 
-                    }
-                    canvas.width = img.width * scaleSize;
-                    canvas.height = img.height * scaleSize;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.6); // FIX: Quality reduced slightly for DB bounds
-                    
-                    imagePreview.src = selectedImageBase64;
-                    imagePreviewContainer.style.display = 'block'; 
-                    
-                    updateSendBtnState(); 
-                    chatInput.focus(); // FIX: Trigger UI state reflow so button always displays
-                }
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
+            window.showToast("Compressing image...", "update");
+            
+            try {
+                let compressedBlob = await compressImageToBlob(file);
+                selectedImages.push({
+                    blob: compressedBlob,
+                    url: URL.createObjectURL(compressedBlob)
+                });
+                
+                updateImagePreviews();
+                updateSendBtnState(); 
+            } catch (err) {
+                window.showToast("Failed to process image.", "error");
+            }
         }
-
-        removeImageBtn.addEventListener('click', () => {
-            selectedImageBase64 = null;
-            imagePreview.src = '';
-            imagePreviewContainer.style.display = 'none';
-            imageUpload.value = ''; 
-            cameraUpload.value = '';
-            updateSendBtnState(); 
-            chatInput.blur(); // FIX: Safely collapse pill UI if cleared
-        });
 
         /* ==========================================================================
            UI INTERACTIONS (CAPSULE EXPANSION)
@@ -2115,7 +2215,7 @@
         });
 
         chatInput.addEventListener('blur', () => {
-            if (chatInput.value.trim() === '' && !selectedImageBase64 && !window.isGenerating) {
+            if (chatInput.value.trim() === '' && selectedImages.length === 0 && !window.isGenerating) {
                 inputCapsule.classList.remove('focused');
                 if (messagesContainer.children.length === 0) {
                     welcomeScreen.classList.remove('hidden');
@@ -2256,9 +2356,10 @@
             chatInput.value = '';
             chatInput.style.height = 'auto';
             
-            selectedImageBase64 = null;
-            imagePreviewContainer.style.display = 'none';
-            imagePreview.src = '';
+            // CLEAR MULTI IMAGES
+            selectedImages = [];
+            updateImagePreviews();
+            
             imageUpload.value = '';
             cameraUpload.value = '';
 
@@ -2330,32 +2431,34 @@
         });
 
         /* ==========================================================================
-           CHAT LOGIC (SEND & DB SYNC)
+           CHAT LOGIC (SEND & DB SYNC + IMGBB API UPLOAD)
            ========================================================================== */
         
         async function handleSend() {
             const text = chatInput.value.trim();
-            if ((!text && !selectedImageBase64) || !currentUser) return;
+            // Allow sending if either text exists or images exist
+            if ((!text && selectedImages.length === 0) || !currentUser) return;
 
             window.vibrateMedium();
             
             let backupText = text;
-            let backupImage = selectedImageBase64;
+            let backupImagesState = [...selectedImages]; // Backup state in case of failure
             
             if(!navigator.onLine) {
                 window.showToast('Offline: Message saved. Will send when reconnected.', 'error');
                 return;
             }
 
-            const currentImage = selectedImageBase64; 
+            const currentImagesToUpload = [...selectedImages];
 
             chatInput.value = '';
             chatInput.style.height = 'auto';
             welcomeScreen.classList.add('hidden'); 
             
-            imagePreviewContainer.style.display = 'none';
-            imagePreview.src = '';
-            selectedImageBase64 = null;
+            // Clear input previews immediately for UX speed
+            selectedImages = [];
+            updateImagePreviews();
+            
             imageUpload.value = '';
             cameraUpload.value = '';
 
@@ -2365,12 +2468,42 @@
             updateSendBtnState();
 
             try {
+                
+                // **NEW IMGBB UPLOAD LOGIC**
+                let uploadedImgUrls = [];
+                if (currentImagesToUpload.length > 0) {
+                    window.showToast("Uploading Images...", "update");
+                    const imgbbKeyFallback = typeof IMGBB_API_KEY !== 'undefined' ? IMGBB_API_KEY : '';
+                    
+                    if (!imgbbKeyFallback) {
+                         window.showToast("ImgBB API Key missing in config.js!", "error");
+                         throw new Error("Missing API Key");
+                    }
+                    
+                    for (let i = 0; i < currentImagesToUpload.length; i++) {
+                        let formData = new FormData();
+                        formData.append('image', currentImagesToUpload[i].blob);
+                        
+                        const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKeyFallback}`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const imgbbData = await imgbbRes.json();
+                        
+                        if (imgbbData && imgbbData.success) {
+                            uploadedImgUrls.push(imgbbData.data.url);
+                        } else {
+                            throw new Error("ImgBB Upload Failed");
+                        }
+                    }
+                }
+
                 if (!currentChatId) {
                     currentChatId = "chat_" + Date.now();
                     
                     const chatDocRef = doc(db, `users/${currentUser.uid}/chats/${currentChatId}`);
                     let chatTitle = text.length > 25 ? text.substring(0, 25) + '...' : text;
-                    if (!chatTitle && currentImage) chatTitle = "Image Upload";
+                    if (!chatTitle && uploadedImgUrls.length > 0) chatTitle = "Image Upload";
                     
                     await setDoc(chatDocRef, {
                         title: chatTitle,
@@ -2396,20 +2529,21 @@
                     needs_ai_reply: true 
                 };
 
-                if (currentImage) {
-                    messagePayload.imageUrl = currentImage;
+                // Store URLs Array in Firestore
+                if (uploadedImgUrls.length > 0) {
+                    messagePayload.imageUrls = uploadedImgUrls;
                 }
 
                 await addDoc(messagesRef, messagePayload);
 
             } catch (error) {
                 console.error("Error sending message:", error);
-                window.showToast("Network Error: Restoring message.", "error");
+                window.showToast("Error: Restoring message.", "error");
                 chatInput.value = backupText;
-                selectedImageBase64 = backupImage;
+                selectedImages = backupImagesState;
+                updateImagePreviews();
                 window.isGenerating = false;
                 updateSendBtnState();
-                chatInput.focus(); // FIX: Ensure capsule stays open if we hit an error 
             }
         }
 
@@ -2554,13 +2688,29 @@
                     // NEW FIX: Prevent scroll double-tap bug from firing while swiping
                     bubble.addEventListener('touchmove', () => { lastTap = 0; }, {passive: true});
                     
-                    if (data.imageUrl) {
+                    // LEGACY SUPPORT for old messages that had single `imageUrl`
+                    if (data.imageUrl && !data.imageUrls) {
                         const img = document.createElement('img');
                         img.src = data.imageUrl;
                         img.className = 'message-image';
                         img.loading = "lazy"; 
                         img.onclick = () => window.openFullscreenImage(data.imageUrl); 
                         bubble.appendChild(img);
+                    }
+                    
+                    // NEW MULTI-IMAGE SUPPORT rendering Array `imageUrls`
+                    if (data.imageUrls && data.imageUrls.length > 0) {
+                        const imgGrid = document.createElement('div');
+                        imgGrid.className = 'message-image-grid';
+                        data.imageUrls.forEach(url => {
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.className = 'message-image';
+                            img.loading = "lazy";
+                            img.onclick = () => window.openFullscreenImage(url);
+                            imgGrid.appendChild(img);
+                        });
+                        bubble.appendChild(imgGrid);
                     }
                     
                     let actionsContainer = null;
@@ -3038,6 +3188,10 @@
 
         // Open the Custom Camera Interface
         async function openCustomCamera() {
+            if (selectedImages.length >= MAX_IMAGES) {
+                window.showToast(`Maximum ${MAX_IMAGES} images allowed.`, "error");
+                return;
+            }
             customCameraUI.classList.add('show');
             history.pushState({ inAppCameraOpen: true }, "");
             await initCameraStream();
@@ -3169,51 +3323,52 @@
         });
 
         // Capture Snapshot and drop back to capsule
-        cameraCaptureBtn.addEventListener('click', () => {
+        cameraCaptureBtn.addEventListener('click', async () => {
             if (!cameraStream || isCameraProcessing) return;
-            window.vibrateSuccess();
+            window.vibrateStrong(); // UPDATED: Strong vibration trigger as requested
             isCameraProcessing = true;
             cameraProcessingOverlay.classList.add('active');
 
-            // FIX: Resize canvas logic to heavily compress image before saving
-            // Otherwise the Base64 String violates Firestore's 1MB limit silently.
-            const MAX_VID_WIDTH = 800;
-            let scaleV = 1;
-            if (cameraVideo.videoWidth > MAX_VID_WIDTH) {
-                scaleV = MAX_VID_WIDTH / cameraVideo.videoWidth;
-            }
-            internalCaptureCanvas.width = cameraVideo.videoWidth * scaleV;
-            internalCaptureCanvas.height = cameraVideo.videoHeight * scaleV;
+            // Draw current video frame to hidden internal canvas
+            internalCaptureCanvas.width = cameraVideo.videoWidth;
+            internalCaptureCanvas.height = cameraVideo.videoHeight;
             
             // If using front camera, we must horizontally flip the canvas context before drawing
             // so the resulting image isn't saved backwards.
             if (useFrontCamera) {
+                internalCtx.save();
                 internalCtx.translate(internalCaptureCanvas.width, 0);
                 internalCtx.scale(-1, 1);
+                internalCtx.drawImage(cameraVideo, 0, 0, internalCaptureCanvas.width, internalCaptureCanvas.height);
+                internalCtx.restore();
+            } else {
+                internalCtx.drawImage(cameraVideo, 0, 0, internalCaptureCanvas.width, internalCaptureCanvas.height);
             }
-            internalCtx.drawImage(cameraVideo, 0, 0, internalCaptureCanvas.width, internalCaptureCanvas.height);
 
-            // Compress to Base64 String (0.5 quality to ensure we do not hit DB limits)
-            const capturedDataUrl = internalCaptureCanvas.toDataURL('image/jpeg', 0.5);
+            // **UPDATED**: Pass to Sub-1MB Compressor and append to array
+            try {
+                let compressedBlob = await compressImageToBlob(internalCaptureCanvas);
+                selectedImages.push({
+                    blob: compressedBlob,
+                    url: URL.createObjectURL(compressedBlob)
+                });
+            } catch(e) {
+                window.showToast("Camera processing failed.", "error");
+            }
 
             // Simulate slight processing delay for UX polish
             setTimeout(() => {
                 isCameraProcessing = false;
                 cameraProcessingOverlay.classList.remove('active');
                 
-                // Pass captured base64 to existing input capsule logic correctly
-                selectedImageBase64 = capturedDataUrl;
-                const prevImg = document.getElementById('image-preview');
-                const prevContainer = document.getElementById('image-preview-container');
-                prevImg.src = selectedImageBase64;
-                prevContainer.style.display = 'block';
-                
                 // Close Camera (pops history naturally)
                 closeCustomCamera();
                 
+                // Update UI Previews
+                updateImagePreviews();
+                
                 // Update text capsule states
                 updateSendBtnState();
-                chatInput.focus(); // FIX: Trigger UI state reflow so button always displays
             }, 600);
         });
 
