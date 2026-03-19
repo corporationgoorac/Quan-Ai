@@ -29,6 +29,9 @@
         .app-container {
             display: flex; flex-direction: column; height: 100%; width: 100%;
             background: #0a0c14; /* Matched home page solid dark background */
+            /* GPU Acceleration */
+            transform: translateZ(0); 
+            -webkit-transform: translate3d(0,0,0);
         }
 
         /* SVG ICONS */
@@ -63,6 +66,10 @@
             flex: 1; margin-top: calc(60px + env(safe-area-inset-top));
             padding: 20px; overflow-y: auto; scroll-behavior: smooth;
             display: flex; flex-direction: column;
+            /* GPU Acceleration */
+            transform: translateZ(0); 
+            -webkit-transform: translate3d(0,0,0);
+            will-change: transform;
         }
 
         /* PROFILE SECTION - Modern Gradient Ring */
@@ -156,21 +163,25 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 
-        /* LOGOUT BUTTON STYLES */
+        /* LOGOUT BUTTON STYLES (UPGRADED FOR PWA & GPU ACCELERATION) */
         .logout-container {
             margin-top: auto; 
             padding-top: 40px;
-            padding-bottom: 20px;
+            padding-bottom: calc(30px + env(safe-area-inset-bottom)); /* Lifted safely for PWA gestures */
             width: 100%;
             display: flex;
             justify-content: center;
+            /* GPU Acceleration */
+            transform: translateZ(0);
+            -webkit-transform: translate3d(0,0,0);
+            will-change: transform;
         }
         .logout-btn {
             background: rgba(255, 69, 0, 0.08);
             color: #ff4500;
             border: 1px solid rgba(255, 69, 0, 0.3);
-            padding: 14px 24px;
-            border-radius: 20px;
+            padding: 16px 24px; /* Increased padding for better touch target */
+            border-radius: 25px; /* Softer pill shape */
             font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
@@ -179,7 +190,12 @@
             justify-content: center;
             gap: 10px;
             transition: all 0.2s ease;
-            width: 100%;
+            width: 90%; /* Stops overflowing layout bounds */
+            max-width: 350px; /* Restricts stretching on tablets */
+            /* GPU Acceleration */
+            transform: translateZ(0);
+            -webkit-transform: translate3d(0,0,0);
+            will-change: transform, background, box-shadow;
         }
         .logout-btn:hover {
             background: rgba(255, 69, 0, 0.15);
@@ -223,7 +239,7 @@
             </div>
         </header>
 
-        <main>
+        <main id="settings-main-content">
             <div class="profile-section">
                 <img src="../images/icon.png" alt="Profile" class="profile-pic" id="profile-img">
                 <h2 class="user-name" id="display-name">Loading...</h2>
@@ -294,9 +310,16 @@
         const cachedName = localStorage.getItem('quan_user_name');
         const cachedMemory = localStorage.getItem('quan_user_memory');
 
+        // QUICK HYDRATION (Pre-Firebase Load)
         if (cachedPhoto) profileImg.src = cachedPhoto;
         if (cachedName) displayName.innerText = cachedName;
         if (cachedMemory) memoryDisplay.innerText = cachedMemory;
+        
+        // PAGE CACHE HYDRATION (WHOLE PAGE LOCAL STORAGE)
+        const storedPageHtml = localStorage.getItem('quan_settings_whole_page');
+        if (storedPageHtml && !cachedName) {
+             document.getElementById('settings-main-content').innerHTML = storedPageHtml;
+        }
 
         // Helper for Toast
         function showToast(msg) {
@@ -417,6 +440,7 @@
                 localStorage.removeItem('quan_user_photo_b64');
                 localStorage.removeItem('quan_user_memory');
                 localStorage.removeItem('quan_has_profile');
+                localStorage.removeItem('quan_settings_whole_page'); // Clear page cache on logout
                 
                 window.location.replace("login.html");
             } catch (error) {
@@ -424,6 +448,23 @@
                 showToast("Error logging out.");
             }
         });
+
+        // 6. STORE WHOLE PAGE TO LOCAL STORAGE (AS REQUESTED)
+        function cacheWholePage() {
+            const mainContent = document.getElementById('settings-main-content');
+            if (mainContent) {
+                localStorage.setItem('quan_settings_whole_page', mainContent.innerHTML);
+            }
+        }
+        
+        // Execute the cache after a slight delay to ensure dynamic data is loaded
+        setTimeout(cacheWholePage, 2500);
+        
+        // Update cache whenever memory is saved
+        saveMemoryBtn.addEventListener('click', () => {
+            setTimeout(cacheWholePage, 1000); 
+        });
+
     </script>
 </body>
 </html>
