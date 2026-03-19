@@ -1446,7 +1446,7 @@
         
         const cameraUpload = document.getElementById('camera-upload');
         const attachmentModal = document.getElementById('attachment-modal');
-        const closeAttachmentBtn = document.getElementById('closeAttachmentBtn');
+        const closeAttachmentBtn = document.getElementById('close-attachment-btn');
         const cameraOptionBtn = document.getElementById('camera-option-btn');
         const galleryOptionBtn = document.getElementById('gallery-option-btn');
         
@@ -2051,8 +2051,8 @@
             
             // Adjusted: compress the image if it's above 6MB internally 
             // Original: if (file.size > 10 * 1024 * 1024) { window.showToast("Image too large. Max 10MB.", "error"); return; }
-            let compressQuality = 0.6; // Better compression to fix Firestore bugs
-            if (file.size > 5 * 1024 * 1024) { 
+            let compressQuality = 0.7; 
+            if (file.size > 6 * 1024 * 1024) { 
                 compressQuality = 0.4; 
             }
             
@@ -2061,7 +2061,7 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // Enforce safe Firestore limit (was 1200)
+                    const MAX_WIDTH = 800; // FIX: Heavily reduced width to avoid Firestore 1MB limit crash
                     let scaleSize = 1; 
                     if (img.width > MAX_WIDTH) { 
                         scaleSize = MAX_WIDTH / img.width; 
@@ -2072,12 +2072,13 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    selectedImageBase64 = canvas.toDataURL('image/jpeg', compressQuality); 
+                    selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.6); // FIX: Quality reduced slightly for DB bounds
                     
                     imagePreview.src = selectedImageBase64;
                     imagePreviewContainer.style.display = 'block'; 
                     
                     updateSendBtnState(); 
+                    chatInput.focus(); // FIX: Trigger UI state reflow so button always displays
                 }
                 img.src = event.target.result;
             };
@@ -2091,6 +2092,7 @@
             imageUpload.value = ''; 
             cameraUpload.value = '';
             updateSendBtnState(); 
+            chatInput.blur(); // FIX: Safely collapse pill UI if cleared
         });
 
         /* ==========================================================================
@@ -2407,6 +2409,7 @@
                 selectedImageBase64 = backupImage;
                 window.isGenerating = false;
                 updateSendBtnState();
+                chatInput.focus(); // FIX: Ensure capsule stays open if we hit an error 
             }
         }
 
@@ -3172,18 +3175,15 @@
             isCameraProcessing = true;
             cameraProcessingOverlay.classList.add('active');
 
-            // SCALE IT DOWN TO PREVENT FIRESTORE 1MB LIMIT ERROR
-            const MAX_CAM_WIDTH = 800; // Small enough to guarantee < 1MB in Base64
-            let scaleCam = 1;
-            if (cameraVideo.videoWidth > MAX_CAM_WIDTH) {
-                scaleCam = MAX_CAM_WIDTH / cameraVideo.videoWidth;
+            // FIX: Resize canvas logic to heavily compress image before saving
+            // Otherwise the Base64 String violates Firestore's 1MB limit silently.
+            const MAX_VID_WIDTH = 800;
+            let scaleV = 1;
+            if (cameraVideo.videoWidth > MAX_VID_WIDTH) {
+                scaleV = MAX_VID_WIDTH / cameraVideo.videoWidth;
             }
-
-            // Draw current video frame to hidden internal canvas
-            internalCaptureCanvas.width = cameraVideo.videoWidth * scaleCam;
-            internalCaptureCanvas.height = cameraVideo.videoHeight * scaleCam;
-            
-            internalCtx.save(); // Save context state to prevent bug on multiple photos
+            internalCaptureCanvas.width = cameraVideo.videoWidth * scaleV;
+            internalCaptureCanvas.height = cameraVideo.videoHeight * scaleV;
             
             // If using front camera, we must horizontally flip the canvas context before drawing
             // so the resulting image isn't saved backwards.
@@ -3192,11 +3192,9 @@
                 internalCtx.scale(-1, 1);
             }
             internalCtx.drawImage(cameraVideo, 0, 0, internalCaptureCanvas.width, internalCaptureCanvas.height);
-            
-            internalCtx.restore(); // Restore context state
 
-            // Compress to Base64 String (0.6 quality for Firebase safety)
-            const capturedDataUrl = internalCaptureCanvas.toDataURL('image/jpeg', 0.6);
+            // Compress to Base64 String (0.5 quality to ensure we do not hit DB limits)
+            const capturedDataUrl = internalCaptureCanvas.toDataURL('image/jpeg', 0.5);
 
             // Simulate slight processing delay for UX polish
             setTimeout(() => {
@@ -3213,10 +3211,9 @@
                 // Close Camera (pops history naturally)
                 closeCustomCamera();
                 
-                // Update text capsule states AND force UI to recognize it
+                // Update text capsule states
                 updateSendBtnState();
-                chatInput.focus(); // Pull up keyboard automatically
-                chatInput.dispatchEvent(new Event('input')); // Force button display
+                chatInput.focus(); // FIX: Trigger UI state reflow so button always displays
             }, 600);
         });
 
