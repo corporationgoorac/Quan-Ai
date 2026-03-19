@@ -23,6 +23,9 @@ const db = getFirestore();
 // 2. API Clients & Configuration
 // ==========================================
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+// ADVANCED LLM: LLaMA 3.3 70B Versatile is Meta's massive, 70-billion parameter reasoning model. 
+// (The smaller, less advanced version is llama-3.1-8b-instant)
 const GROQ_MODEL = "llama-3.3-70b-versatile"; 
 const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
@@ -37,7 +40,7 @@ const SERVER_URL = process.env.SERVER_URL || `http://localhost:${process.env.POR
 // 3. In-Memory Caches
 // ==========================================
 const chatHistoryCache = new LRUCache({ max: 10000, ttl: 1000 * 60 * 60 * 24 });
-const imageStore = new LRUCache({ max: 500, ttl: 1000 * 60 * 10 }); // Stores images in RAM for 10 mins
+const imageStore = new LRUCache({ max: 500, ttl: 1000 * 60 * 10 }); 
 const apiUsageTracker = new Map();
 
 console.log("[Quan AI Backend] Advanced Worker started. Listening for incoming messages...");
@@ -73,7 +76,12 @@ async function getChatHistory(uid, chatId) {
 
 async function fetchImageForGemini(url) {
     try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 sec timeout for images
+        
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const arrayBuffer = await response.arrayBuffer();
         return {
@@ -83,8 +91,8 @@ async function fetchImageForGemini(url) {
             }
         };
     } catch (e) {
-        console.error(`[Quan AI] Failed to fetch image for Gemini: ${url}`, e.message);
-        return { text: `[System Note: Attached image could not be retrieved from ${url}]` };
+        console.error(`[Quan AI] Failed to fetch image: ${url}`, e.message);
+        return { text: `[System Note: Image could not be loaded]` };
     }
 }
 
@@ -105,15 +113,12 @@ db.collectionGroup('messages').where('needs_ai_reply', '==', true).onSnapshot(as
         console.log(`[Quan AI] Intercepted request in chat: ${chatId}`);
 
         try {
-            // Immediately mark as processed to prevent duplicate processing
             await messageRef.update({ needs_ai_reply: false });
 
-            // Fetch User Context
             const userSnap = await db.collection('users').doc(uid).get();
             const memory = userSnap.exists ? (userSnap.data().memory || "") : "";
             const userName = userSnap.exists ? (userSnap.data().name || "User") : "User";
 
-            // Build Local History
             let localHistory = await getChatHistory(uid, chatId);
             localHistory.push({ 
                 role: 'user', 
@@ -121,9 +126,8 @@ db.collectionGroup('messages').where('needs_ai_reply', '==', true).onSnapshot(as
                 imageUrl: messageData.imageUrl || null,
                 imageUrls: messageData.imageUrls || [] 
             });
-            if (localHistory.length > 20) localHistory.shift(); // Keep context window manageable
+            if (localHistory.length > 20) localHistory.shift(); 
 
-            // Determine Routing & Intent
             let messageCount = apiUsageTracker.get(cacheKey) || 0;
             let useGroq = (messageCount % 4) < 2; 
 
@@ -140,15 +144,17 @@ db.collectionGroup('messages').where('needs_ai_reply', '==', true).onSnapshot(as
             let generatedImageUrl = null;
             let groqSuccess = false;
             
-            // SMART SYSTEM PROMPT for LLM-driven memory consolidation
+            // --- STRICT, BULLETED MEMORY PROMPT ---
+            // This stops the AI from storing garbage and forces concise, fast generation.
             const systemPrompt = `You are Quantum AI, built by Goorac Corporation. You are talking to ${userName}.
-CURRENT MEMORY: "${memory}"
+CURRENT MEMORY (Bulleted list of facts):
+${memory || "None"}
 
-CRITICAL INSTRUCTION FOR MEMORY MANAGEMENT:
-1. If the user provides NEW information, changes a preference, or contradicts the CURRENT MEMORY, you must update the memory.
-2. To update, output <UPDATE_MEMORY> followed by a freshly rewritten, comprehensive summary of ALL valid memory (combining the old facts with the new ones, and dropping outdated/contradicted facts).
-3. If there is NO new information in the user's latest message, DO NOT use the <UPDATE_MEMORY> tag at all. 
-4. NEVER output phrases like "No new updates" or "None" inside the tags. The content inside the tags will completely overwrite the user's database profile.`;
+MEMORY RULES (STRICT):
+1. ONLY update memory if the user explicitly states a NEW permanent fact (e.g., age, job, pet, preference) OR contradicts an existing fact.
+2. DO NOT update memory for casual chat, feelings, greetings, or temporary questions (e.g., never save "User asked about the weather" or "User said hello").
+3. If an update is REQUIRED, output <UPDATE_MEMORY> followed by the FULL, UPDATED bulleted list of facts. Keep each bullet extremely short.
+4. If no permanent fact is stated in this exact message, YOU MUST NOT USE THE <UPDATE_MEMORY> TAG.`;
 
             // --- GROQ ROUTE ---
             if (useGroq) {
@@ -174,23 +180,29 @@ CRITICAL INSTRUCTION FOR MEMORY MANAGEMENT:
                 });
 
                 try {
+                    // FIX: Add AbortController to prevent Groq from hanging forever and causing lag
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 7000); // 7 second max wait
+
                     const response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
                         headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
                         method: "POST",
-                        body: JSON.stringify({ model: hasImageInHistory ? VISION_MODEL : GROQ_MODEL, messages: messagesPayload, max_tokens: 800 })
+                        body: JSON.stringify({ model: hasImageInHistory ? VISION_MODEL : GROQ_MODEL, messages: messagesPayload, max_tokens: 800 }),
+                        signal: controller.signal
                     });
 
+                    clearTimeout(timeoutId);
                     const result = await response.json();
                     
                     if (result.choices && result.choices.length > 0) {
                         aiReply = result.choices[0].message.content.trim();
                         groqSuccess = true;
                     } else {
-                        console.warn(`[Quan AI] Groq API returned an unexpected structure or error:`, result);
+                        console.warn(`[Quan AI] Groq API returned an unexpected structure. Falling back.`);
                         groqSuccess = false; 
                     }
                 } catch (e) {
-                    console.warn(`[Quan AI] Groq Request failed. Falling back to Gemini...`, e.message);
+                    console.warn(`[Quan AI] Groq Request failed/timed out. Falling back to Gemini...`, e.message);
                     groqSuccess = false;
                 }
             } 
@@ -201,7 +213,6 @@ CRITICAL INSTRUCTION FOR MEMORY MANAGEMENT:
                 
                 try {
                     if (isImageGenerationRequest) {
-                         console.log(`[Quan AI] Generating image using Gemini 2.5 Flash Image...`);
                          const imageResult = await ai.models.generateContent({
                              model: GEMINI_IMAGE_MODEL,
                              contents: messageData.text,
@@ -216,7 +227,6 @@ CRITICAL INSTRUCTION FOR MEMORY MANAGEMENT:
                          imageStore.set(imageId, imageBuffer);
     
                          generatedImageUrl = `${SERVER_URL}/image/${imageId}`;
-                         console.log(`[Quan AI] Image stored in RAM: ${generatedImageUrl}`);
                          aiReply = "Here is the image you requested. Note: This link will expire in 10 minutes.";
                     } else {
                         let geminiHistory = [];
@@ -237,15 +247,13 @@ CRITICAL INSTRUCTION FOR MEMORY MANAGEMENT:
                         const response = await ai.models.generateContent({
                             model: GEMINI_TEXT_MODEL,
                             contents: geminiHistory,
-                            config: {
-                                systemInstruction: systemPrompt
-                            }
+                            config: { systemInstruction: systemPrompt }
                         });
                         aiReply = response.text;
                     }
                 } catch (geminiError) {
                     console.error(`[Quan AI] Gemini processing failed:`, geminiError);
-                    throw geminiError; // Trigger outer catch block to notify user
+                    throw geminiError; 
                 }
             }
 
@@ -258,25 +266,21 @@ CRITICAL INSTRUCTION FOR MEMORY MANAGEMENT:
                 const extractedMemory = memoryMatch[1].trim();
                 aiReply = aiReply.replace(memoryRegex, '').trim(); 
                 
-                // Safety Net: Prevent the LLM from overwriting memory with lazy phrases
-                const lazyPhrases = ["no new update", "no update", "none", "nothing new", "no changes", "no new information"];
-                const isLazyResponse = lazyPhrases.some(phrase => extractedMemory.toLowerCase().includes(phrase));
-
-                // Only update if it's not a lazy response and has actual substance
-                if (!isLazyResponse && extractedMemory.length > 5) {
+                // Enhanced Safety Net: Reject conversational filler or overly long hallucinations
+                const isFiller = /user asked|user said|user wanted|hello|hi|how are you/i.test(extractedMemory);
+                const isTooLong = extractedMemory.length > 1500; // Prevent massive token bloat
+                
+                if (!isFiller && !isTooLong && extractedMemory.length > 5) {
                     updatedMemory = extractedMemory;
                 } else {
-                    console.log(`[Quan AI] Ignored lazy or empty memory update from LLM: "${extractedMemory}"`);
+                    console.log(`[Quan AI] Ignored invalid memory update. Filler: ${isFiller}, Too Long: ${isTooLong}`);
                 }
             }
 
             // --- SAVE STATE ---
-            
-            // 1. Update Local Cache
             localHistory.push({ role: 'model', text: aiReply, imageUrl: generatedImageUrl, imageUrls: [] });
             chatHistoryCache.set(cacheKey, localHistory);
 
-            // 2. Write to Firestore Messages
             const aiMessagePayload = { 
                 text: aiReply, 
                 role: "ai", 
@@ -287,20 +291,18 @@ CRITICAL INSTRUCTION FOR MEMORY MANAGEMENT:
 
             await db.collection(`users/${uid}/chats/${chatId}/messages`).add(aiMessagePayload);
             
-            // 3. Write Memory Updates to User Doc ONLY if it actually changed
+            // Only write to DB if memory was actually updated
             if (updatedMemory !== memory) {
-                console.log(`[Quan AI] Memory updated successfully. New context size: ${updatedMemory.length} chars.`);
+                console.log(`[Quan AI] Memory updated. New context size: ${updatedMemory.length} chars.`);
                 await db.collection('users').doc(uid).set({ memory: updatedMemory }, { merge: true });
             }
             
-            // 4. Update Chat Timestamp for UI sorting
             await db.collection(`users/${uid}/chats`).doc(chatId).set({ updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 
         } catch (error) {
             console.error(`[Quan AI] Critical error processing message for chat ${chatId}:`, error);
-            // Send error fallback to user so the chat doesn't hang indefinitely
             await db.collection(`users/${uid}/chats/${chatId}/messages`).add({
-                text: "I encountered a connection error while trying to process that request. Let's try again.",
+                text: "I encountered a connection error. Let's try again.",
                 role: "ai",
                 timestamp: FieldValue.serverTimestamp(),
                 needs_ai_reply: false
@@ -322,11 +324,7 @@ http.createServer((req, res) => {
         const imageBuffer = imageStore.get(imageId);
         
         if (imageBuffer) {
-            res.writeHead(200, { 
-                'Content-Type': 'image/jpeg', 
-                'Content-Length': imageBuffer.length, 
-                'Cache-Control': 'public, max-age=600' 
-            });
+            res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Content-Length': imageBuffer.length, 'Cache-Control': 'public, max-age=600' });
             res.end(imageBuffer);
         } else {
             res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -335,7 +333,6 @@ http.createServer((req, res) => {
         return;
     }
     
-    // Basic health check route
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Quan AI Worker is healthy and hosting temporary images.');
 }).listen(port, '0.0.0.0', () => console.log(`[Quan AI] Server listening on port ${port}.`));
