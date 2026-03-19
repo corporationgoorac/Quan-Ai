@@ -25,7 +25,6 @@ const db = getFirestore();
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // ADVANCED LLM: LLaMA 3.3 70B Versatile is Meta's massive, 70-billion parameter reasoning model. 
-// (The smaller, less advanced version is llama-3.1-8b-instant)
 const GROQ_MODEL = "llama-3.3-70b-versatile"; 
 const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
@@ -145,7 +144,6 @@ db.collectionGroup('messages').where('needs_ai_reply', '==', true).onSnapshot(as
             let groqSuccess = false;
             
             // --- STRICT, BULLETED MEMORY PROMPT ---
-            // This stops the AI from storing garbage and forces concise, fast generation.
             const systemPrompt = `You are Quantum AI, built by Goorac Corporation. You are talking to ${userName}.
 CURRENT MEMORY (Bulleted list of facts):
 ${memory || "None"}
@@ -154,7 +152,8 @@ MEMORY RULES (STRICT):
 1. ONLY update memory if the user explicitly states a NEW permanent fact (e.g., age, job, pet, preference) OR contradicts an existing fact.
 2. DO NOT update memory for casual chat, feelings, greetings, or temporary questions (e.g., never save "User asked about the weather" or "User said hello").
 3. If an update is REQUIRED, output <UPDATE_MEMORY> followed by the FULL, UPDATED bulleted list of facts. Keep each bullet extremely short.
-4. If no permanent fact is stated in this exact message, YOU MUST NOT USE THE <UPDATE_MEMORY> TAG.`;
+4. If no permanent fact is stated in this exact message, YOU MUST NOT USE THE <UPDATE_MEMORY> TAG.
+5. YOU MUST ALWAYS reply to the user naturally. Place your normal conversational response OUTSIDE and AFTER the <UPDATE_MEMORY> tags. Do not reply with just tags.`;
 
             // --- GROQ ROUTE ---
             if (useGroq) {
@@ -180,9 +179,8 @@ MEMORY RULES (STRICT):
                 });
 
                 try {
-                    // FIX: Add AbortController to prevent Groq from hanging forever and causing lag
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 7000); // 7 second max wait
+                    const timeoutId = setTimeout(() => controller.abort(), 7000); 
 
                     const response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
                         headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
@@ -264,17 +262,23 @@ MEMORY RULES (STRICT):
 
             if (memoryMatch) {
                 const extractedMemory = memoryMatch[1].trim();
-                aiReply = aiReply.replace(memoryRegex, '').trim(); 
                 
-                // Enhanced Safety Net: Reject conversational filler or overly long hallucinations
+                // CRITICAL FIX: Use match[0] to perfectly strip the tag and its contents
+                aiReply = aiReply.replace(memoryMatch[0], '').trim(); 
+                
                 const isFiller = /user asked|user said|user wanted|hello|hi|how are you/i.test(extractedMemory);
-                const isTooLong = extractedMemory.length > 1500; // Prevent massive token bloat
+                const isTooLong = extractedMemory.length > 1500; 
                 
                 if (!isFiller && !isTooLong && extractedMemory.length > 5) {
                     updatedMemory = extractedMemory;
                 } else {
                     console.log(`[Quan AI] Ignored invalid memory update. Filler: ${isFiller}, Too Long: ${isTooLong}`);
                 }
+            }
+
+            // CRITICAL FIX: Prevent blank message crashes on frontend
+            if (!aiReply || aiReply.length === 0) {
+                aiReply = "Got it, I'll remember that.";
             }
 
             // --- SAVE STATE ---
