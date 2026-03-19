@@ -1501,6 +1501,10 @@
         const MAX_IMAGES = 4;
         let selectedImageBase64 = null; // Preserving dead variable to prevent breaking dependent legacy loops if any
 
+        // --- NEW: GLOBAL BRIDGE FIX TO PREVENT REFERENCE ERRORS IN CAMERA MODULE ---
+        window.selectedImages = selectedImages;
+        window.MAX_IMAGES = MAX_IMAGES;
+
         let selectedChatIdForModal = null; 
         let cachedChatExportText = ""; 
         
@@ -1990,6 +1994,9 @@
             }
         }
 
+        // Bridge update helpers back to window scope
+        window.updateSendBtnState = updateSendBtnState;
+
         clearTextBtn.onclick = () => {
             chatInput.value = '';
             chatInput.style.height = 'auto';
@@ -2092,6 +2099,8 @@
             return blob;
         }
 
+        window.compressImageToBlob = compressImageToBlob;
+
         // **NEW**: Render multiple selected thumbnails
         function updateImagePreviews() {
             imagePreviewContainer.innerHTML = '';
@@ -2112,6 +2121,7 @@
                     btn.onclick = () => {
                         window.vibrateLight();
                         selectedImages.splice(index, 1);
+                        window.selectedImages = selectedImages; // Sync
                         updateImagePreviews();
                         updateSendBtnState();
                     };
@@ -2122,6 +2132,8 @@
                 });
             }
         }
+
+        window.updateImagePreviews = updateImagePreviews;
            
         attachBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -2188,6 +2200,7 @@
                     url: URL.createObjectURL(compressedBlob)
                 });
                 
+                window.selectedImages = selectedImages; // Sync global
                 updateImagePreviews();
                 updateSendBtnState(); 
             } catch (err) {
@@ -2267,7 +2280,7 @@
         // PERFECTED: Trigger Custom In-App Camera Instead of OS Trigger
         // ==========================================================================
         cameraOptionBtn.addEventListener('click', () => {
-            pendingFileAction = () => openCustomCamera(); // UPDATED ROUTE
+            pendingFileAction = () => window.openCustomCamera(); // UPDATED ROUTE
             if (history.state && history.state.attachmentModalOpen) {
                 history.back(); 
             } else {
@@ -2335,11 +2348,11 @@
             } else if (sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
                 sidebarOverlay.classList.remove('show');
-            } else if (customCameraUI.classList.contains('show')) {
+            } else if (document.getElementById('custom-camera-ui').classList.contains('show')) {
                 // Safely close the custom camera if hardware back button is pressed
                 // and clear out the popstate so it doesn't double trigger
-                customCameraUI.classList.remove('show');
-                stopCameraStream();
+                document.getElementById('custom-camera-ui').classList.remove('show');
+                if (window.stopCameraStream) window.stopCameraStream();
             }
         });
 
@@ -2358,6 +2371,7 @@
             
             // CLEAR MULTI IMAGES
             selectedImages = [];
+            window.selectedImages = selectedImages; // SYNCHRONIZE GLOBAL BRIDGE
             updateImagePreviews();
             
             imageUpload.value = '';
@@ -2457,6 +2471,7 @@
             
             // Clear input previews immediately for UX speed
             selectedImages = [];
+            window.selectedImages = selectedImages; // SYNCHRONIZE GLOBAL BRIDGE
             updateImagePreviews();
             
             imageUpload.value = '';
@@ -2541,6 +2556,7 @@
                 window.showToast("Error: Restoring message.", "error");
                 chatInput.value = backupText;
                 selectedImages = backupImagesState;
+                window.selectedImages = selectedImages;
                 updateImagePreviews();
                 window.isGenerating = false;
                 updateSendBtnState();
@@ -3186,10 +3202,12 @@
         let blazefaceModel = null;
         let isModelLoading = false;
 
+        window.stopCameraStream = stopCameraStream;
+
         // Open the Custom Camera Interface
         async function openCustomCamera() {
-            if (selectedImages.length >= MAX_IMAGES) {
-                window.showToast(`Maximum ${MAX_IMAGES} images allowed.`, "error");
+            if (window.selectedImages && window.selectedImages.length >= window.MAX_IMAGES) {
+                window.showToast(`Maximum ${window.MAX_IMAGES} images allowed.`, "error");
                 return;
             }
             customCameraUI.classList.add('show');
@@ -3205,6 +3223,8 @@
             //     blazeface.load().then(model => { blazefaceModel = model; console.log("Blazeface loaded"); });
             // }
         }
+
+        window.openCustomCamera = openCustomCamera;
 
         // Close the Custom Camera Interface properly popping history and cleaning up
         function closeCustomCamera() {
@@ -3347,8 +3367,8 @@
 
             // **UPDATED**: Pass to Sub-1MB Compressor and append to array
             try {
-                let compressedBlob = await compressImageToBlob(internalCaptureCanvas);
-                selectedImages.push({
+                let compressedBlob = await window.compressImageToBlob(internalCaptureCanvas);
+                window.selectedImages.push({
                     blob: compressedBlob,
                     url: URL.createObjectURL(compressedBlob)
                 });
@@ -3365,10 +3385,10 @@
                 closeCustomCamera();
                 
                 // Update UI Previews
-                updateImagePreviews();
+                window.updateImagePreviews();
                 
                 // Update text capsule states
-                updateSendBtnState();
+                window.updateSendBtnState();
             }, 600);
         });
 
