@@ -167,7 +167,7 @@
         .logout-container {
             margin-top: auto; 
             padding-top: 40px;
-            padding-bottom: calc(30px + env(safe-area-inset-bottom)); /* Lifted safely for PWA gestures */
+            padding-bottom: calc(80px + env(safe-area-inset-bottom, 30px)) !important; /* Force lifted safely for PWA gestures */
             width: 100%;
             display: flex;
             justify-content: center;
