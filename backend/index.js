@@ -143,17 +143,26 @@ db.collectionGroup('messages').where('needs_ai_reply', '==', true).onSnapshot(as
             let generatedImageUrl = null;
             let groqSuccess = false;
             
-            // --- STRICT, BULLETED MEMORY PROMPT ---
+            // --- BULLETPROOF SYSTEM PROMPT ---
+            // Forces AI to write chat first, then memory at the end to prevent tag swallowing.
             const systemPrompt = `You are Quantum AI, built by Goorac Corporation. You are talking to ${userName}.
-CURRENT MEMORY (Bulleted list of facts):
+CURRENT MEMORY (Facts about the user):
 ${memory || "None"}
 
-MEMORY RULES (STRICT):
-1. ONLY update memory if the user explicitly states a NEW permanent fact (e.g., age, job, pet, preference) OR contradicts an existing fact.
-2. DO NOT update memory for casual chat, feelings, greetings, or temporary questions (e.g., never save "User asked about the weather" or "User said hello").
-3. If an update is REQUIRED, output <UPDATE_MEMORY> followed by the FULL, UPDATED bulleted list of facts. Keep each bullet extremely short.
-4. If no permanent fact is stated in this exact message, YOU MUST NOT USE THE <UPDATE_MEMORY> TAG.
-5. YOU MUST ALWAYS reply to the user naturally. Place your normal conversational response OUTSIDE and AFTER the <UPDATE_MEMORY> tags. Do not reply with just tags.`;
+CRITICAL INSTRUCTIONS:
+1. You must act as a helpful conversational AI. Always respond naturally to the user's message first.
+2. If the user explicitly shares a NEW personal fact, preference, or contradicts an old fact, you MUST update the memory.
+3. To update memory, you must append a special block at the VERY END of your response.
+4. Use the exact tags [MEMORY_START] and [MEMORY_END]. Inside the tags, provide the fully updated bulleted list of facts.
+
+FORMAT EXAMPLE:
+That is a great idea! I love learning about space.
+[MEMORY_START]
+- User loves astronomy
+- User owns a telescope
+[MEMORY_END]
+
+If there are no new facts to save, DO NOT use the memory tags at all. Just reply normally.`;
 
             // --- GROQ ROUTE ---
             if (useGroq) {
@@ -255,30 +264,30 @@ MEMORY RULES (STRICT):
                 }
             }
 
-            // --- SMART MEMORY EXTRACTION & CONSOLIDATION ---
-            const memoryRegex = /<UPDATE_MEMORY>([\s\S]*?)(?:<\/UPDATE_MEMORY>|$)/i;
-            const memoryMatch = aiReply.match(memoryRegex);
+            // --- FLAWLESS MEMORY EXTRACTION ---
             let updatedMemory = memory; 
+            const exactRegex = /\[MEMORY_START\]([\s\S]*?)\[MEMORY_END\]/i;
+            const partialRegex = /\[MEMORY_START\]([\s\S]*)/i; // In case AI forgets the closing tag
 
-            if (memoryMatch) {
-                const extractedMemory = memoryMatch[1].trim();
-                
-                // CRITICAL FIX: Use match[0] to perfectly strip the tag and its contents
-                aiReply = aiReply.replace(memoryMatch[0], '').trim(); 
-                
-                const isFiller = /user asked|user said|user wanted|hello|hi|how are you/i.test(extractedMemory);
-                const isTooLong = extractedMemory.length > 1500; 
-                
-                if (!isFiller && !isTooLong && extractedMemory.length > 5) {
-                    updatedMemory = extractedMemory;
-                } else {
-                    console.log(`[Quan AI] Ignored invalid memory update. Filler: ${isFiller}, Too Long: ${isTooLong}`);
-                }
+            if (exactRegex.test(aiReply)) {
+                const match = aiReply.match(exactRegex);
+                updatedMemory = match[1].trim();
+                aiReply = aiReply.replace(match[0], '').trim(); 
+            } else if (partialRegex.test(aiReply)) {
+                const match = aiReply.match(partialRegex);
+                updatedMemory = match[1].trim();
+                aiReply = aiReply.replace(match[0], '').trim(); 
             }
 
-            // CRITICAL FIX: Prevent blank message crashes on frontend
+            // Reject if the AI glitched and tried to dump a massive essay into memory
+            if (updatedMemory.length > 1500) {
+                console.log(`[Quan AI] Ignored invalid memory update: Too Long.`);
+                updatedMemory = memory;
+            }
+
+            // Final fallback to prevent frontend crashes
             if (!aiReply || aiReply.length === 0) {
-                aiReply = "Got it, I'll remember that.";
+                aiReply = "I have noted that down in my memory.";
             }
 
             // --- SAVE STATE ---
@@ -295,9 +304,9 @@ MEMORY RULES (STRICT):
 
             await db.collection(`users/${uid}/chats/${chatId}/messages`).add(aiMessagePayload);
             
-            // Only write to DB if memory was actually updated
-            if (updatedMemory !== memory) {
-                console.log(`[Quan AI] Memory updated. New context size: ${updatedMemory.length} chars.`);
+            // Only write to DB if memory was actually safely updated
+            if (updatedMemory !== memory && updatedMemory.length > 5) {
+                console.log(`[Quan AI] Memory safely updated. New context size: ${updatedMemory.length} chars.`);
                 await db.collection('users').doc(uid).set({ memory: updatedMemory }, { merge: true });
             }
             
