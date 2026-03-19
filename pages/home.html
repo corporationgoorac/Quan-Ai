@@ -1446,7 +1446,7 @@
         
         const cameraUpload = document.getElementById('camera-upload');
         const attachmentModal = document.getElementById('attachment-modal');
-        const closeAttachmentBtn = document.getElementById('closeAttachment-btn');
+        const closeAttachmentBtn = document.getElementById('closeAttachmentBtn');
         const cameraOptionBtn = document.getElementById('camera-option-btn');
         const galleryOptionBtn = document.getElementById('gallery-option-btn');
         
@@ -1656,7 +1656,7 @@
 
             // --- NEW: MATH (KaTeX) PRE-PROCESSING ---
             if (typeof katex !== 'undefined') {
-                // Display Math: $$...$$ 
+                // Display Math: $$ ... $$ 
                 processedText = processedText.replace(/\$\$(.*?)\$\$/gs, (match, math) => {
                     try { return katex.renderToString(math, { displayMode: true, throwOnError: false }); } catch(e) { return match; }
                 });
@@ -1668,7 +1668,7 @@
                 processedText = processedText.replace(/\\\((.*?)\\\)/gs, (match, math) => {
                     try { return katex.renderToString(math, { displayMode: false, throwOnError: false }); } catch(e) { return match; }
                 });
-                // Inline Math: $...$ (Ensures we don't accidentally format currency like $100)
+                // Inline Math: $ ... $ (Ensures we don't accidentally format currency like $100)
                 processedText = processedText.replace(/(^|[^\\])\$([^$\n]+?)\$/g, (match, prefix, math) => {
                     try { return prefix + katex.renderToString(math, { displayMode: false, throwOnError: false }); } catch(e) { return match; }
                 });
@@ -1904,7 +1904,7 @@
            DYNAMIC SEND / STOP BUTTON STATE CONTROLLER
            ========================================================================== */
         function updateSendBtnState() {
-            const val = chatInput.value || ''; // ENSURE SAFEFALLBACK TO STRING TO PREVENT UI ERRORS
+            const val = chatInput.value;
             
             if(val.length > 0) {
                 clearTextBtn.classList.add('show');
@@ -2049,9 +2049,10 @@
         function handleImageSelection(file) {
             closeAttachmentModal(); 
             
-            // Adjusted: aggressive compression to easily bypass 1MB Firebase Firestore doc limit
-            let compressQuality = 0.6; 
-            if (file.size > 3 * 1024 * 1024) { 
+            // Adjusted: compress the image if it's above 6MB internally 
+            // Original: if (file.size > 10 * 1024 * 1024) { window.showToast("Image too large. Max 10MB.", "error"); return; }
+            let compressQuality = 0.6; // Better compression to fix Firestore bugs
+            if (file.size > 5 * 1024 * 1024) { 
                 compressQuality = 0.4; 
             }
             
@@ -2060,13 +2061,13 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1000; 
+                    const MAX_WIDTH = 800; // Enforce safe Firestore limit (was 1200)
                     let scaleSize = 1; 
                     if (img.width > MAX_WIDTH) { 
                         scaleSize = MAX_WIDTH / img.width; 
                     }
-                    canvas.width = Math.floor(img.width * scaleSize);
-                    canvas.height = Math.floor(img.height * scaleSize);
+                    canvas.width = img.width * scaleSize;
+                    canvas.height = img.height * scaleSize;
                     
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -2077,7 +2078,6 @@
                     imagePreviewContainer.style.display = 'block'; 
                     
                     updateSendBtnState(); 
-                    chatInput.dispatchEvent(new Event('input')); // Guarantee UI refresh to show button
                 }
                 img.src = event.target.result;
             };
@@ -3172,57 +3172,52 @@
             isCameraProcessing = true;
             cameraProcessingOverlay.classList.add('active');
 
-            try {
-                // Draw current video frame to hidden internal canvas with dynamic safe-sizing 
-                // to prevent Firestore 1MB limits causing "Lots of Errors" and vanishing photos!
-                let targetWidth = cameraVideo.videoWidth || 1080;
-                let targetHeight = cameraVideo.videoHeight || 1920;
-                const MAX_CAM_WIDTH = 1000;
-                
-                if (targetWidth > MAX_CAM_WIDTH) {
-                    targetHeight = Math.floor((MAX_CAM_WIDTH / targetWidth) * targetHeight);
-                    targetWidth = MAX_CAM_WIDTH;
-                }
-                
-                internalCaptureCanvas.width = targetWidth;
-                internalCaptureCanvas.height = targetHeight;
-                
-                // If using front camera, we must horizontally flip the canvas context before drawing
-                // so the resulting image isn't saved backwards.
-                if (useFrontCamera) {
-                    internalCtx.translate(targetWidth, 0);
-                    internalCtx.scale(-1, 1);
-                }
-                internalCtx.drawImage(cameraVideo, 0, 0, targetWidth, targetHeight);
+            // SCALE IT DOWN TO PREVENT FIRESTORE 1MB LIMIT ERROR
+            const MAX_CAM_WIDTH = 800; // Small enough to guarantee < 1MB in Base64
+            let scaleCam = 1;
+            if (cameraVideo.videoWidth > MAX_CAM_WIDTH) {
+                scaleCam = MAX_CAM_WIDTH / cameraVideo.videoWidth;
+            }
 
-                // Compress to Base64 String (0.6 quality for aggressive compression to bypass Firebase limit)
-                const capturedDataUrl = internalCaptureCanvas.toDataURL('image/jpeg', 0.6);
+            // Draw current video frame to hidden internal canvas
+            internalCaptureCanvas.width = cameraVideo.videoWidth * scaleCam;
+            internalCaptureCanvas.height = cameraVideo.videoHeight * scaleCam;
+            
+            internalCtx.save(); // Save context state to prevent bug on multiple photos
+            
+            // If using front camera, we must horizontally flip the canvas context before drawing
+            // so the resulting image isn't saved backwards.
+            if (useFrontCamera) {
+                internalCtx.translate(internalCaptureCanvas.width, 0);
+                internalCtx.scale(-1, 1);
+            }
+            internalCtx.drawImage(cameraVideo, 0, 0, internalCaptureCanvas.width, internalCaptureCanvas.height);
+            
+            internalCtx.restore(); // Restore context state
 
-                // Simulate slight processing delay for UX polish
-                setTimeout(() => {
-                    isCameraProcessing = false;
-                    cameraProcessingOverlay.classList.remove('active');
-                    
-                    // Pass captured base64 to existing input capsule logic correctly
-                    selectedImageBase64 = capturedDataUrl;
-                    const prevImg = document.getElementById('image-preview');
-                    const prevContainer = document.getElementById('image-preview-container');
-                    prevImg.src = selectedImageBase64;
-                    prevContainer.style.display = 'block';
-                    
-                    // Close Camera (pops history naturally)
-                    closeCustomCamera();
-                    
-                    // Update text capsule states and FORCE UI refresh instantly
-                    updateSendBtnState();
-                    chatInput.dispatchEvent(new Event('input')); 
-                }, 600);
-            } catch (err) {
-                console.error("Camera capture error:", err);
+            // Compress to Base64 String (0.6 quality for Firebase safety)
+            const capturedDataUrl = internalCaptureCanvas.toDataURL('image/jpeg', 0.6);
+
+            // Simulate slight processing delay for UX polish
+            setTimeout(() => {
                 isCameraProcessing = false;
                 cameraProcessingOverlay.classList.remove('active');
-                window.showToast("Failed to capture image", "error");
-            }
+                
+                // Pass captured base64 to existing input capsule logic correctly
+                selectedImageBase64 = capturedDataUrl;
+                const prevImg = document.getElementById('image-preview');
+                const prevContainer = document.getElementById('image-preview-container');
+                prevImg.src = selectedImageBase64;
+                prevContainer.style.display = 'block';
+                
+                // Close Camera (pops history naturally)
+                closeCustomCamera();
+                
+                // Update text capsule states AND force UI to recognize it
+                updateSendBtnState();
+                chatInput.focus(); // Pull up keyboard automatically
+                chatInput.dispatchEvent(new Event('input')); // Force button display
+            }, 600);
         });
 
         // ==========================================================================
