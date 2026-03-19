@@ -387,6 +387,12 @@
             width: 100%;
             padding: 0 5px; 
             position: relative;
+            /* NEW: GPU HIGH PERFORMANCE ACCELERATION */
+            transform: translateZ(0);
+            will-change: transform;
+            -webkit-transform: translate3d(0,0,0);
+            backface-visibility: hidden;
+            perspective: 1000px;
         }
 
         .message-row.user { justify-content: flex-end; }
@@ -417,6 +423,9 @@
             position: relative;
             user-select: text !important;
             -webkit-user-select: text !important;
+            /* NEW: GPU HIGH PERFORMANCE ACCELERATION */
+            transform: translateZ(0);
+            will-change: transform, content;
         }
 
         /* PERFECTED AUDIO GLOW CSS EFFECT - Bottom Aura Only */
@@ -1528,6 +1537,11 @@
         window.activeActionsEl = null; 
         window.justSentPrompt = false; 
 
+        // GLOBAL PAGINATION STATES
+        window.currentMessageLimit = 20;
+        window.hasMoreMessages = false;
+        window.isLoadingMoreMessages = false;
+
         // ==========================================================================
         // GLOBAL EVENT LISTENER FOR DYNAMIC IMAGE CLICK HANDLING
         // ==========================================================================
@@ -1703,7 +1717,7 @@
 
             // --- NEW: MATH (KaTeX) PRE-PROCESSING ---
             if (typeof katex !== 'undefined') {
-                // Display Math: $$ ... $$ 
+                // Display Math: $$...$$ 
                 processedText = processedText.replace(/\$\$(.*?)\$\$/gs, (match, math) => {
                     try { return katex.renderToString(math, { displayMode: true, throwOnError: false }); } catch(e) { return match; }
                 });
@@ -1715,7 +1729,7 @@
                 processedText = processedText.replace(/\\\((.*?)\\\)/gs, (match, math) => {
                     try { return katex.renderToString(math, { displayMode: false, throwOnError: false }); } catch(e) { return match; }
                 });
-                // Inline Math: $ ... $ (Ensures we don't accidentally format currency like $100)
+                // Inline Math: $...$ (Ensures we don't accidentally format currency like $100)
                 processedText = processedText.replace(/(^|[^\\])\$([^$\n]+?)\$/g, (match, prefix, math) => {
                     try { return prefix + katex.renderToString(math, { displayMode: false, throwOnError: false }); } catch(e) { return match; }
                 });
@@ -1825,9 +1839,16 @@
         updateGreeting(localStorage.getItem('quan_user_name')); 
 
         /* ==========================================================================
-           SCROLL BUTTON LOGIC (WITH UNREAD BADGE)
+           SCROLL BUTTON LOGIC (WITH UNREAD BADGE & NEW PAGINATION TRIGGER)
            ========================================================================== */
         chatFlow.addEventListener('scroll', () => {
+            // NEW PAGINATION TRIGGER FOR FIREBASE INFINITE SCROLL HISTORY
+            if (chatFlow.scrollTop <= 50 && !window.isLoadingMoreMessages && window.hasMoreMessages && currentChatId) {
+                window.isLoadingMoreMessages = true;
+                window.currentMessageLimit += 20;
+                listenToChat(currentChatId);
+            }
+
             if (!scrollBottomBtn) return;
             const isScrolledUp = chatFlow.scrollHeight - chatFlow.scrollTop - chatFlow.clientHeight > 150;
             if (isScrolledUp) {
@@ -2367,6 +2388,11 @@
         });
 
         newChatBtn.addEventListener('click', () => {
+            // NEW PAGINATION RESET LOGIC
+            window.currentMessageLimit = 20;
+            window.hasMoreMessages = true;
+            window.isLoadingMoreMessages = false;
+            
             currentChatId = null;
             messagesContainer.innerHTML = '';
             
@@ -2639,9 +2665,21 @@
             if (messagesUnsubscribe) messagesUnsubscribe(); 
 
             const path = `users/${currentUser.uid}/chats/${chatId}/messages`;
-            const q = query(collection(db, path), orderBy("timestamp", "asc"));
+            // ORIGINAL PRESERVED: const q = query(collection(db, path), orderBy("timestamp", "asc"));
+            
+            // NEW PAGINATION FIREBASE LOGIC (DO NOT REMOVE)
+            window.currentMessageLimit = window.currentMessageLimit || 20;
+            const q = query(collection(db, path), orderBy("timestamp", "desc"), limit(window.currentMessageLimit));
 
             messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+                // NEW PAGINATION DOM STATE TRACKING TO PREVENT SCROLL JUMPING
+                let prevScrollHeight = chatFlow.scrollHeight;
+                let prevScrollTop = chatFlow.scrollTop;
+                let isPaginating = window.isLoadingMoreMessages;
+                
+                window.hasMoreMessages = snapshot.docs.length >= window.currentMessageLimit;
+                window.isLoadingMoreMessages = false;
+
                 messagesContainer.innerHTML = ''; 
                 cachedChatExportText = ""; 
                 
@@ -2659,6 +2697,7 @@
                 const initialLoad = window.isInitialChatLoad; 
                 window.isInitialChatLoad = false; 
 
+                // THE SORT METHOD REVERSES THE NEW "DESC" QUERY BACK TO CHRONOLOGICAL CHAT VIEW PERFECTLY
                 messagesList.sort((a, b) => {
                     const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Infinity;
                     const timeB = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp) : Infinity;
@@ -3015,6 +3054,11 @@
                 }
 
                 const smoothScrollToBottom = () => {
+                    // NEW MATH: ZERO-JUMP PAGINATION RESTORATION
+                    if (isPaginating) {
+                        chatFlow.scrollTop = prevScrollTop + (chatFlow.scrollHeight - prevScrollHeight);
+                        return;
+                    }
                     if (initialLoad) {
                         // --- MODIFIED TO SHOW LAST MESSAGE AT TOP INSTEAD OF SCROLLING TO BOTTOM ---
                         // chatFlow.scrollTo({ top: chatFlow.scrollHeight, behavior: 'auto' });
@@ -3132,6 +3176,11 @@
                             e.preventDefault();
                             return; 
                         }
+
+                        // NEW PAGINATION RESET STATE
+                        window.currentMessageLimit = 20;
+                        window.isLoadingMoreMessages = false;
+                        window.hasMoreMessages = true;
                         
                         currentChatId = chatId;
                         welcomeScreen.classList.add('hidden'); 
