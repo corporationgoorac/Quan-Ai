@@ -18,4 +18,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider(); // For easy Google Login
 
-export { db, auth, googleProvider };
+// ImgBB API Key for Image Uploads
+const IMGBB_API_KEY = "Ec521beb5111f54fc727ee473dea38be";
+
+export { db, auth, googleProvider, IMGBB_API_KEY };
