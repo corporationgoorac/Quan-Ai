@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,7 +29,7 @@
 
         .app-container {
             display: flex; flex-direction: column; height: 100%; width: 100%;
-            background: radial-gradient(circle at 50% 0%, rgba(138, 43, 226, 0.05) 0%, transparent 50%);
+            background: #0a0c14; /* Matched home page solid dark background */
         }
 
         /* SVG ICONS */
@@ -40,22 +41,23 @@
             height: calc(60px + env(safe-area-inset-top));
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 20px; padding-top: calc(env(safe-area-inset-top) + 6px);
-            background: rgba(10, 12, 20, 0.75);
+            background: #0a0c14; /* Merged with background to eliminate line exactly like home */
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            border-bottom: none !important; /* Removed border to match home header */
             z-index: 2000;
         }
 
         .header-left { display: flex; align-items: center; gap: 15px; }
         
         .icon-btn {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); 
+            background: none; border: none; /* Matched home page menu-btn style */
             color: #ffffff; display: flex; align-items: center; justify-content: center; 
-            padding: 8px; border-radius: 50%; cursor: pointer; transition: all 0.2s ease;
+            padding: 5px; border-radius: 50%; cursor: pointer; transition: background 0.3s ease;
         }
+        .icon-btn:hover { background: rgba(255, 255, 255, 0.1); }
         .icon-btn:active { background: rgba(255, 255, 255, 0.15); transform: scale(0.92); }
 
-        .page-title { font-size: 1.15rem; font-weight: 600; letter-spacing: 0.3px; }
+        .page-title { font-size: 1.15rem; font-weight: 600; letter-spacing: 0.3px; background: linear-gradient(90deg, #8a2be2, #ff4500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } /* Matched home brand-title gradient */
 
         /* MAIN CONTENT */
         main {
@@ -72,7 +74,7 @@
         .profile-pic {
             width: 105px; height: 105px; border-radius: 50%; object-fit: cover;
             padding: 3px; background: linear-gradient(135deg, #8a2be2, #ff4500);
-            box-shadow: 0 8px 24px rgba(138, 43, 226, 0.25);
+            box-shadow: 0 0 30px rgba(138, 43, 226, 0.4); /* Matched home page floating logo glow */
             margin-bottom: 18px;
         }
         
@@ -87,20 +89,22 @@
         }
 
         .edit-btn {
-            background: rgba(138, 43, 226, 0.1); color: #b366ff; border: 1px solid rgba(138, 43, 226, 0.2);
-            padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+            background: rgba(255, 255, 255, 0.03); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.08); /* Matched suggestion-chip style */
+            padding: 6px 14px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;
             cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;
         }
-        .edit-btn:active { transform: scale(0.95); background: rgba(138, 43, 226, 0.25); }
-        .edit-btn .svg-icon { width: 16px; height: 16px; }
+        .edit-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(138, 43, 226, 0.4); color: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .edit-btn:active { transform: scale(0.95); }
+        .edit-btn .svg-icon { width: 16px; height: 16px; color: #ff4500; } /* Match icon color theme */
 
         .memory-card {
-            background: linear-gradient(145deg, rgba(30, 32, 42, 0.8), rgba(20, 22, 28, 0.9));
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 20px; padding: 22px; color: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.03); /* Matched suggestion-chip style */
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 15px; padding: 22px; color: rgba(255, 255, 255, 0.85);
             line-height: 1.65; font-size: 0.95rem; min-height: 110px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.02); 
+            box-shadow: none; 
             word-wrap: break-word; font-weight: 400;
+            transition: all 0.2s ease;
         }
 
         /* SIDE MODAL (For Editing Memory) */
@@ -116,21 +120,21 @@
             padding: 0 20px; padding-top: calc(env(safe-area-inset-top) + 10px);
             height: calc(60px + env(safe-area-inset-top));
             border-bottom: 1px solid rgba(255,255,255,0.04);
-            background: rgba(10, 12, 20, 0.9); backdrop-filter: blur(10px);
+            background: #0a0c14; backdrop-filter: blur(10px);
         }
 
         .save-btn {
-            background: linear-gradient(135deg, #8a2be2, #ff4500);
+            background: linear-gradient(135deg, #9d4edd, #ff5722); /* Matched home send-btn gradient */
             color: white; border: none; padding: 9px 18px; border-radius: 20px;
             font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 4px 15px rgba(138, 43, 226, 0.3); /* Premium inner glow */
         }
         .save-btn:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(138, 43, 226, 0.2); }
         .save-btn:disabled { opacity: 0.6; pointer-events: none; filter: grayscale(50%); }
 
         .modal-body {
             flex: 1; padding: 20px; display: flex; flex-direction: column;
-            background: radial-gradient(circle at 100% 100%, rgba(255, 69, 0, 0.03) 0%, transparent 50%);
+            background: transparent;
         }
 
         .memory-textarea {
@@ -141,14 +145,14 @@
         }
         .memory-textarea::placeholder { color: rgba(255,255,255,0.25); font-weight: 400; }
 
-        /* ENHANCED TOAST */
+        /* ENHANCED TOAST - Matched home page global toast */
         .toast {
             position: fixed; top: calc(env(safe-area-inset-top) + 80px); left: 50%; 
             transform: translateX(-50%) translateY(-20px) scale(0.95);
-            background: rgba(255, 255, 255, 0.95); color: #0a0c14; padding: 12px 28px; 
-            border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; pointer-events: none;
+            background: rgba(138, 43, 226, 0.95); color: white; padding: 12px 28px; 
+            border-radius: 30px; font-size: 0.9rem; font-weight: 500; opacity: 0; pointer-events: none;
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 9999;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
     </style>
@@ -178,7 +182,7 @@
         
         <header>
             <div class="header-left">
-                <button class="icon-btn" onclick="window.location.href='home.html'">
+                <button class="icon-btn" onclick="if(window.vibrateLight) window.vibrateLight(); window.location.href='home.html'">
                     <script>document.write(window.SVGS.arrow_back);</script>
                 </button>
                 <span class="page-title">Settings</span>
@@ -224,6 +228,11 @@
         import { auth, db } from '../config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+        // ADDED HAPTIC FEEDBACK GLOBAL FUNCTIONS
+        window.vibrateLight = () => { if(navigator.vibrate) navigator.vibrate(2); };
+        window.vibrateMedium = () => { if(navigator.vibrate) navigator.vibrate(20); };
+        window.vibrateSuccess = () => { if(navigator.vibrate) navigator.vibrate([15, 20, 15]); };
 
         // DOM Elements
         const profileImg = document.getElementById('profile-img');
@@ -291,6 +300,7 @@
 
         // 3. MODAL & NATIVE BACK BUTTON LOGIC
         function openModal() {
+            window.vibrateLight(); // Added haptics
             editModal.classList.add('open');
             // Push state to browser history so the back button knows we are in a modal
             history.pushState({ modalOpen: true }, "");
@@ -298,6 +308,7 @@
         }
 
         function closeModal() {
+            window.vibrateLight(); // Added haptics
             editModal.classList.remove('open');
             memoryInput.blur();
         }
@@ -324,6 +335,8 @@
         saveMemoryBtn.addEventListener('click', async () => {
             if (!currentUser) return;
             
+            window.vibrateMedium(); // Added haptics
+
             const newMemory = memoryInput.value.trim();
             saveMemoryBtn.innerText = "Saving...";
             saveMemoryBtn.disabled = true;
