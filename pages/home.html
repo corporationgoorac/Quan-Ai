@@ -671,10 +671,12 @@
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-            transform: translateY(0);
             transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); /* Premium fluid spring */
             touch-action: none !important;
             position: relative;
+            /* Added for stability and smoothness */
+            will-change: transform, box-shadow;
+            transform: translateZ(0);
         }
 
         .input-area:focus-within, .input-area.focused {
@@ -687,7 +689,7 @@
             box-shadow: 0 -4px 25px rgba(138, 43, 226, 0.15), 
                         0 0 15px rgba(255, 69, 0, 0.1), 
                         0 8px 30px rgba(0,0,0,0.4); 
-            transform: translateY(-2px); /* Slight premium lift */
+            transform: translateZ(0) translateY(-2px); /* Slight premium lift with Hardware Acceleration */
         }
 
         .input-box {
@@ -741,6 +743,9 @@
             cursor: pointer; height: 38px; width: 38px; display: flex; align-items: center; justify-content: center;
             align-self: flex-end; margin-bottom: 2px; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: none;
+            /* Added for stability and smoothness */
+            will-change: transform, background, color;
+            transform: translateZ(0);
         }
         .plus-btn:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
 
@@ -1977,7 +1982,12 @@
                     sendBtn.classList.add('active');
                     sendBtn.style.display = 'flex';
                     micBtnWrapper.style.display = 'none';
-                    attachBtn.style.display = 'none';
+                    // FIX: Show plus button always unless max limit is reached
+                    if (selectedImages.length >= MAX_IMAGES) {
+                        attachBtn.style.display = 'none';
+                    } else {
+                        attachBtn.style.display = 'flex';
+                    }
                 } else {
                     inputCapsule.classList.remove('focused');
                     sendBtn.classList.remove('active');
