@@ -657,16 +657,17 @@
            6. FLAGSHIP CAPSULE INPUT AREA (REDESIGNED PILL)
            ========================================================================== */
         .input-area-container {
-            background: transparent;
-            border-top: 1px solid transparent;
-            padding-bottom: env(safe-area-inset-bottom, 10px);
-            flex-shrink: 0;
-            width: 100%;
-            z-index: 1000;
-            position: relative;
-            margin-top: auto; 
-            touch-action: pan-y !important;
+    background: transparent;
+    border-top: 1px solid transparent;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important; /* <--- NEW LINE */
+    flex-shrink: 0;
+    width: 100%;
+    z-index: 1000;
+    position: relative;
+    margin-top: auto; 
+    touch-action: pan-y !important;
         }
+        
 
         .input-area {
             margin: 16px 40px; /* Small, compact pill shape width */
