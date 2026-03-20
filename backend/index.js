@@ -118,6 +118,10 @@ db.collectionGroup('messages').where('needs_ai_reply', '==', true).onSnapshot(as
         console.log(`[Quan AI] Intercepted request in chat: ${chatId}`);
 
         try {
+            // ADVANCED FEATURE: Start execution timer for telemetry
+            const startTime = Date.now();
+            let servedByModel = "unknown";
+
             // Lock the message immediately to prevent duplicate processing
             await messageRef.update({ needs_ai_reply: false });
 
@@ -155,11 +159,12 @@ db.collectionGroup('messages').where('needs_ai_reply', '==', true).onSnapshot(as
             
             // --- ENTERPRISE SYSTEM PROMPT ---
             // Includes Temporal Awareness, Compression Directives, and strict negative constraints.
-            const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const currentTime = new Date().toLocaleTimeString('en-US');
+            // FIXED: Forced 'Asia/Kolkata' timezone so Hugging Face UTC environment doesn't break the time context.
+            const currentDate = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const currentTime = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata' });
 
             const systemPrompt = `You are Quantum AI, a flagship assistant built by Goorac Corporation. You are talking to ${userName}.
-CURRENT SYSTEM TIME & DATE: ${currentDate}, ${currentTime}.
+CURRENT SYSTEM TIME & DATE: ${currentDate}, ${currentTime} (IST).
 
 CURRENT MEMORY PROFILE:
 ${memory || "No permanent facts known yet."}
@@ -200,6 +205,8 @@ If there are no permanent facts to update in this specific message, DO NOT outpu
                     messagesPayload.push({ role: msg.role === 'model' ? 'assistant' : 'user', content });
                 });
 
+                servedByModel = hasImageInHistory ? VISION_MODEL : GROQ_MODEL; // Track model execution
+
                 // Advanced Retry Logic for API stability
                 let maxRetries = 2;
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -211,10 +218,11 @@ If there are no permanent facts to update in this specific message, DO NOT outpu
                             headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
                             method: "POST",
                             body: JSON.stringify({ 
-                                model: hasImageInHistory ? VISION_MODEL : GROQ_MODEL, 
+                                model: servedByModel, 
                                 messages: messagesPayload, 
                                 max_tokens: 800,
-                                temperature: 0.6 // Slightly lower temperature for more logical memory formatting
+                                temperature: 0.6, // Slightly lower temperature for more logical memory formatting
+                                top_p: 0.9 // ADVANCED FEATURE: Added Nucleus sampling for tighter context alignment
                             }),
                             signal: controller.signal
                         });
@@ -249,10 +257,14 @@ If there are no permanent facts to update in this specific message, DO NOT outpu
                 
                 try {
                     if (isImageGenerationRequest) {
+                         servedByModel = GEMINI_IMAGE_MODEL;
                          const imageResult = await ai.models.generateContent({
                              model: GEMINI_IMAGE_MODEL,
                              contents: messageData.text,
-                             config: { responseModalities: ["IMAGE"] }
+                             config: { 
+                                responseModalities: ["IMAGE"],
+                                temperature: 0.7 // ADVANCED FEATURE: Added specific temp constraints for image generation
+                             }
                          });
                          
                          const inlineData = imageResult.candidates?.[0]?.content?.parts?.[0]?.inlineData;
@@ -265,6 +277,7 @@ If there are no permanent facts to update in this specific message, DO NOT outpu
                          generatedImageUrl = `${SERVER_URL}/image/${imageId}`;
                          aiReply = "Here is the image you requested. Let me know if you need adjustments. (Note: This secure link expires in 10 minutes).";
                     } else {
+                        servedByModel = GEMINI_TEXT_MODEL;
                         let geminiHistory = [];
                         
                         for (const msg of localHistory) {
@@ -283,7 +296,13 @@ If there are no permanent facts to update in this specific message, DO NOT outpu
                         const response = await ai.models.generateContent({
                             model: GEMINI_TEXT_MODEL,
                             contents: geminiHistory,
-                            config: { systemInstruction: systemPrompt }
+                            config: { 
+                                systemInstruction: systemPrompt,
+                                // ADVANCED FEATURE: Better tuning parameters to prevent Gemini from hallucinating formats
+                                temperature: 0.65,
+                                topP: 0.95,
+                                topK: 40
+                            }
                         });
                         aiReply = response.text;
                     }
@@ -325,11 +344,19 @@ If there are no permanent facts to update in this specific message, DO NOT outpu
             localHistory.push({ role: 'model', text: aiReply, imageUrl: generatedImageUrl, imageUrls: [] });
             chatHistoryCache.set(cacheKey, localHistory);
 
+            // ADVANCED FEATURE: Latency timing calculation
+            const latencyMs = Date.now() - startTime;
+
             const aiMessagePayload = { 
                 text: aiReply, 
                 role: "ai", 
                 timestamp: FieldValue.serverTimestamp(), 
-                needs_ai_reply: false 
+                needs_ai_reply: false,
+                // ADVANCED FEATURE: Saves metadata directly to Firebase document for dashboard analytics
+                metadata: {
+                    model_used: servedByModel,
+                    processing_time_ms: latencyMs
+                }
             };
             if (generatedImageUrl) aiMessagePayload.imageUrl = generatedImageUrl; 
 
